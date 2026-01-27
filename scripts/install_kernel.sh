@@ -3,7 +3,7 @@
 # 1. 加载环境
 if [ -f "/etc/mihomo/.env" ]; then source /etc/mihomo/.env; fi
 
-# 架构检测 (只做 amd64 和 arm64 的简单判断)
+# 架构检测
 ARCH=$(uname -m)
 if [[ "$ARCH" == "x86_64" ]]; then
     PLATFORM="linux-amd64-compatible"
@@ -15,30 +15,20 @@ else
 fi
 
 # ==========================================
-# 核心改动：自动 vs 手动模式判断
+# 自动/手动模式判断
 # ==========================================
-MODE=$1  # 接收第一个参数
-
+MODE=$1
 if [[ "$MODE" == "auto" ]]; then
-    # --- 自动模式 (一键脚本调用) ---
-    echo "🤖 检测到自动安装模式，正在获取最新版本..."
-    # 自动去 GitHub API 抓取最新 Release 的 Tag (例如 v1.18.3)
+    echo "🤖 自动安装模式..."
     TAG=$(curl -s "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
-    
     if [ -z "$TAG" ]; then
         echo "❌ 无法获取最新版本号，请检查网络。"
         exit 1
     fi
-    echo "✅ 锁定最新版本: ${TAG}"
-
 else
-    # --- 手动模式 (菜单调用) ---
     echo "正在获取版本列表..."
-    # 这里为了简单，手动模式也默认推荐最新版，或者你可以保留原来的列表逻辑
-    # 这里演示最简化的逻辑：直接询问是否安装最新版
     LATEST_TAG=$(curl -s "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" | grep -oP '"tag_name": "\K(.*)(?=")')
-    
-    echo "当前最新版本: ${LATEST_TAG}"
+    echo "最新版本: ${LATEST_TAG}"
     read -p "是否安装此版本? (y/n): " choice
     if [[ "$choice" != "y" ]]; then
         echo "已取消。"
@@ -49,13 +39,9 @@ fi
 # ==========================================
 
 # 2. 构建下载链接
-# 这里的 GH_PROXY 来自 .env，如果没有就为空
 DOWNLOAD_URL="${GH_PROXY}https://github.com/MetaCubeX/mihomo/releases/download/${TAG}/mihomo-${PLATFORM}-${TAG}.gz"
 
 echo "⬇️  正在下载内核..."
-echo "地址: $DOWNLOAD_URL"
-
-# 3. 下载并安装
 curl -L -o /tmp/mihomo.gz "$DOWNLOAD_URL"
 
 if [ $? -ne 0 ]; then
@@ -69,10 +55,16 @@ gunzip -f /tmp/mihomo.gz
 mv /tmp/mihomo ${MIHOMO_PATH}/mihomo
 chmod +x ${MIHOMO_PATH}/mihomo
 
-# 4. 只有在服务已存在时才尝试重启，防止报错
-if systemctl list-units --full -all | grep -q "mihomo.service"; then
-    echo "🔄 重启服务..."
+# ==========================================
+# 核心修复：智能重启逻辑
+# ==========================================
+# 只有当服务当前是 "active" (正在运行) 状态时，才执行重启
+# 初次安装时服务是停止的，所以会跳过这一步，避免报错
+if systemctl is-active --quiet mihomo.service; then
+    echo "🔄 检测到服务正在运行，正在重启以应用新内核..."
     systemctl restart mihomo
+    echo "✅ 服务重启完成。"
+else
+    # 这一步是为了安抚用户，告诉他没启动是正常的
+    echo "✅ 内核安装完成 (服务未启动，请在配置订阅后手动启动)。"
 fi
-
-echo "✅ Mihomo 内核 (${TAG}) 安装/更新 成功！"
