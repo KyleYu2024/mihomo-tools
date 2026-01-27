@@ -49,5 +49,5 @@
 进入 LXC 容器终端，执行以下 **一键命令**：
 
 ```bash
-rm -rf /etc/mihomo-tools && git clone https://ghproxy.net/https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && bash /etc/mihomo-tools/install.sh
+rm -rf /etc/mihomo-tools && git clone https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && bash /etc/mihomo-tools/install.sh
 ```
