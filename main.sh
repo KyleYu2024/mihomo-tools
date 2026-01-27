@@ -8,7 +8,7 @@ else
     exit 1
 fi
 
-# 2. 定义颜色（让界面好看一点）
+# 2. 定义颜色
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
@@ -23,11 +23,11 @@ fi
 show_menu() {
     clear
     echo -e "${GREEN}====================================${NC}"
-    echo -e "${GREEN}    Mihomo 模块化管理工具   ${NC}"
+    echo -e "${GREEN}    Mihomo 模块化管理工具 (2026版)   ${NC}"
     echo -e "${GREEN}====================================${NC}"
     echo -e "1. 安装/更新 内核 (install_kernel)"
-    echo -e "2. 管理服务 (启动/停止/重启) - [待开发]"
-    echo -e "3. 更新配置 (Sub-Store/本地) - [待开发]"
+    echo -e "2. 管理服务 (启动/停止/重启/状态)"
+    echo -e "3. 更新配置 (Sub-Store/本地/URL)"
     echo -e "4. 查看实时日志 - [待开发]"
     echo -e "5. 设置自动更新与自修复 - [待开发]"
     echo -e "6. 更新 Geo 数据库 (geoip/geosite)"
@@ -41,12 +41,12 @@ while true; do
     show_menu
     case $choice in
         1)
-            # 调用内核安装模块
+            # --- 积木 1：内核安装 ---
             bash ${SCRIPT_PATH}/install_kernel.sh
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         2)
-            # 调用服务管理模块
+            # --- 积木 2：服务管理 (已点亮) ---
             echo -e "\n${GREEN}[服务管理]${NC}"
             echo "1. 启动 | 2. 停止 | 3. 重启 | 4. 状态"
             read -p "请选择动作: " svc_action
@@ -60,24 +60,34 @@ while true; do
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         3)
+            # --- 积木 3：配置管理 (已点亮) ---
             echo -e "\n${GREEN}[配置管理]${NC}"
             echo "1. 从 Sub-Store/URL 更新配置 (读取 .env)"
             echo "2. 手动输入 URL 更新"
             echo "3. 本地编辑配置 (安全模式)"
             read -p "请选择: " cfg_action
             case $cfg_action in
-                1) 
-                    bash ${SCRIPT_PATH}/manage_config.sh update 
-                    ;;
+                1) bash ${SCRIPT_PATH}/manage_config.sh update ;;
                 2)
                     read -p "请输入订阅链接: " manual_url
                     bash ${SCRIPT_PATH}/manage_config.sh update "$manual_url"
                     ;;
-                3)
-                    bash ${SCRIPT_PATH}/manage_config.sh edit
-                    ;;
+                3) bash ${SCRIPT_PATH}/manage_config.sh edit ;;
                 *) echo "无效指令" ;;
             esac
+            read -n 1 -s -r -p "按任意键返回菜单..."
+            ;;
+        4)
+            echo "功能 [查看日志] 尚未开发..."
+            sleep 1
+            ;;
+        5)
+            echo "功能 [自动更新] 尚未开发..."
+            sleep 1
+            ;;
+        6)
+            # --- 积木 4：Geo 更新 (对应你改的数字 6) ---
+            bash ${SCRIPT_PATH}/update_geo.sh
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         0)
@@ -88,10 +98,5 @@ while true; do
             echo -e "${RED}无效选项，请重新选择${NC}"
             sleep 1
             ;;
-        4)
-            # 调用 Geo 更新模块
-            bash ${SCRIPT_PATH}/update_geo.sh
-            read -n 1 -s -r -p "按任意键返回菜单..."
-            ;;    
     esac
 done
