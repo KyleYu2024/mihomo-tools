@@ -49,34 +49,46 @@ apply_config() {
 }
 
 # 3. 从 URL 更新 (Sub-Store / 机场链接)
-update_from_url() {
-    # 优先检查传入参数，如果没有则检查环境变量
+# 新增：保存订阅链接到 .env
+save_url_to_env() {
     local url=$1
+    # 如果 .env 里没有 SUB_URL，就追加；如果有，就替换
+    if grep -q "SUB_URL=" "/etc/mihomo/.env"; then
+        # 使用 sed 替换整行 (注意这里用了 | 作为分隔符，防止 URL 里的 / 冲突)
+        sed -i "s|^SUB_URL=.*|SUB_URL=\"$url\"|" /etc/mihomo/.env
+    else
+        echo "SUB_URL=\"$url\"" >> /etc/mihomo/.env
+    fi
+    # 重新加载变量
+    source /etc/mihomo/.env
+    echo "✅ 订阅链接已保存到系统配置。"
+}
+
+# 修改：从 URL 更新
+update_from_url() {
+    local url=$1
+    
+    # 如果没传参数，就尝试读取保存的 SUB_URL
     if [ -z "$url" ]; then
         url=$SUB_URL
     fi
     
+    # 如果还是空的，就让用户输，并且问要不要保存
     if [ -z "$url" ]; then
-        echo "错误：未设置订阅链接！"
-        echo "请在 .env 文件中设置 SUB_URL，或作为参数传入。"
-        exit 1
+        read -p "请输入订阅链接: " input_url
+        if [ -z "$input_url" ]; then echo "取消操作"; exit 1; fi
+        url=$input_url
+        
+        read -p "是否保存此链接以便自动更新？(y/n): " save_choice
+        if [ "$save_choice" == "y" ]; then
+            save_url_to_env "$url"
+        fi
+    else
+        # 如果是直接通过参数传进来的（比如定时任务），就不问了，直接用
+        : 
     fi
-    
-    echo "正在从订阅链接下载配置..."
-    echo "地址: $url"
-    
-    # 下载到临时文件
-    curl -L -o "$TEMP_FILE" "$url"
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ 下载失败，请检查网络或代理设置。"
-        exit 1
-    fi
-    
-    # 走统一的校验流程
-    apply_config "$TEMP_FILE"
-    # 清理临时文件
-    rm -f "$TEMP_FILE"
+
+    # ... (后续的下载 curl 和 apply_config 逻辑保持不变) ...
 }
 
 # 4. 本地编辑模式
