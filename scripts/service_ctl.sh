@@ -22,6 +22,9 @@ After=network.target network-online.target nss-lookup.target
 Type=simple
 User=root
 WorkingDirectory=${MIHOMO_PATH}
+# --- 新增：启动前强制初始化网关网络 ---
+ExecStartPre=/bin/bash ${SCRIPT_PATH}/gateway_init.sh
+# -----------------------------------
 ExecStart=${MIHOMO_PATH}/mihomo -d ${MIHOMO_PATH}
 # 稳定性核心：崩溃后 5 秒自动重启
 Restart=always
