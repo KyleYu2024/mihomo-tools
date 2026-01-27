@@ -20,19 +20,42 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # 4. 主菜单函数
+get_status() {
+    if systemctl is-active --quiet mihomo; then
+        echo -e "${GREEN}● 运行中${NC}"
+    else
+        echo -e "${RED}● 已停止${NC}"
+    fi
+}
+
+get_version() {
+    if [ -f "${MIHOMO_PATH}/mihomo" ]; then
+        # 获取版本号 (例如 v1.18.1)
+        ${MIHOMO_PATH}/mihomo -v | head -n 1 | awk '{print $3}'
+    else
+        echo "未安装"
+    fi
+}
+
 show_menu() {
     clear
-    echo -e "${GREEN}====================================${NC}"
-    echo -e "${GREEN}    Mihomo 模块化管理工具  ${NC}"
-    echo -e "${GREEN}====================================${NC}"
+    # 动态获取状态
+    local status=$(get_status)
+    local version=$(get_version)
+    
+    echo -e "${GREEN}===========================================${NC}"
+    echo -e "${GREEN}   Mihomo 模块化管理工具 (2026 Pro版)   ${NC}"
+    echo -e "${GREEN}===========================================${NC}"
+    echo -e " 状态: ${status}    内核版本: ${GREEN}${version}${NC}"
+    echo -e "${GREEN}-------------------------------------------${NC}"
     echo -e "1. 安装/更新 内核 (install_kernel)"
-    echo -e "2. 管理服务 (启动/停止/重启/状态)"
-    echo -e "3. 更新配置 (Sub-Store/本地/URL)"
-    echo -e "4. 查看实时日志"
-    echo -e "5. 设置自动更新与自修复"
+    echo -e "2. 管理服务 (启动/停止/重启)"
+    echo -e "3. 配置与订阅 (设置链接/手动更新)"
+    echo -e "4. 查看实时日志 (view_log)"
+    echo -e "5. 自动化任务 (看门狗/定时更新订阅)"
     echo -e "6. 更新 Geo 数据库 (geoip/geosite)"
     echo -e "0. 退出脚本"
-    echo -e "${GREEN}====================================${NC}"
+    echo -e "${GREEN}===========================================${NC}"
     read -p "请输入选项 [0-6]: " choice
 }
 
