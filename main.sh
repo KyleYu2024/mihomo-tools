@@ -47,7 +47,7 @@ show_menu() {
     local version=$(get_version)
     
     echo -e "${GREEN}===========================================${NC}"
-    echo -e "${GREEN}    Mihomo 模块化管理工具 (2026 Pro版)   ${NC}"
+    echo -e "${GREEN}    Mihomo 模块化管理工具   ${NC}"
     echo -e "${GREEN}===========================================${NC}"
     echo -e " 运行状态: ${status}    内核版本: ${YELLOW}${version}${NC}"
     echo -e "${GREEN}-------------------------------------------${NC}"
