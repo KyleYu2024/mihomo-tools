@@ -46,7 +46,7 @@ while true; do
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         2)
-            # --- 积木 2：服务管理 (已点亮) ---
+            # --- 积木 2：服务管理 ---
             echo -e "\n${GREEN}[服务管理]${NC}"
             echo "1. 启动 | 2. 停止 | 3. 重启 | 4. 状态"
             read -p "请选择动作: " svc_action
@@ -60,7 +60,7 @@ while true; do
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         3)
-            # --- 积木 3：配置管理 (已点亮) ---
+            # --- 积木 3：配置管理 ---
             echo -e "\n${GREEN}[配置管理]${NC}"
             echo "1. 从 Sub-Store/URL 更新配置 (读取 .env)"
             echo "2. 手动输入 URL 更新"
@@ -78,13 +78,14 @@ while true; do
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         4)
-            # --- 积木 5：查看日志 (已点亮) ---
+            # --- 积木 5：查看日志 ---
             bash ${SCRIPT_PATH}/view_log.sh
             # 日志查看结束后（用户按Ctrl+C），不需要暂停，直接回菜单更流畅
             ;;
         5)
-            echo "功能 [自动更新] 尚未开发..."
-            sleep 1
+            # --- 积木 6：自动化管理 ---
+            bash ${SCRIPT_PATH}/cron_manager.sh
+            read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         6)
             # --- 积木 4：Geo 更新 (对应你改的数字 6) ---
