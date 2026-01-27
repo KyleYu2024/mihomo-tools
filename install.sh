@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==========================================
-# Mihomo 一键部署脚本 (Final Pro)
+# Mihomo 一键部署脚本
 # ==========================================
 
 SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
@@ -134,4 +134,5 @@ systemctl restart mihomo-manager
 
 echo -e "${GREEN}=============================================${NC}"
 echo -e "${GREEN}   ✅ 安装完成！Web 面板: http://IP:8080 ${NC}"
+echo -e "${GREEN}        zashboard 面板: http://IP:9090/ui ${NC}"
 echo -e "${GREEN}=============================================${NC}"
