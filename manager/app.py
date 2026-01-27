@@ -150,13 +150,19 @@ def handle_settings():
         
         return jsonify({"success": True, "message": "设置已保存"})
 
+# --- 4. 日志 (新版：读取文件) ---
 @app.route('/api/logs')
 def get_logs():
-    # 增加 --no-pager 并没有日志时返回提示
-    success, logs = run_cmd("journalctl -u mihomo -n 100 --no-pager")
-    if not logs or "No entries" in logs:
-        return jsonify({"logs": "⚠️ 暂无日志。\n如果下方显示 'No journal files'，请点击右上角的 [修复日志] 按钮。"})
+    LOG_FILE = "/var/log/mihomo.log"
+    
+    if not os.path.exists(LOG_FILE):
+        return jsonify({"logs": "⚠️ 日志文件尚未生成，请稍后刷新..."})
+    
+    # 使用 tail 命令读取最后 100 行
+    # 既然 journald 坏了，我们直接读文件，稳如老狗
+    success, logs = run_cmd(f"tail -n 100 {LOG_FILE}")
+    
+    if not logs:
+        return jsonify({"logs": "⚠️ 日志文件是空的 (服务可能刚启动)。"})
+        
     return jsonify({"logs": logs})
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
