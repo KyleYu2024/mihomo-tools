@@ -57,9 +57,10 @@ show_menu() {
     echo -e "4. 查看实时日志 (view_log)"
     echo -e "5. 自动化任务 (看门狗/定时更新订阅)"
     echo -e "6. 更新 Geo 数据库 (geoip/geosite)"
+    echo -e "7. 通知的配置与测试"  # <--- 新增这一行
     echo -e "0. 退出脚本"
     echo -e "${GREEN}===========================================${NC}"
-    read -p "请输入选项 [0-6]: " choice
+    read -p "请输入选项 [0-7]: " choice  
 }
 
 # 6. 逻辑分发
