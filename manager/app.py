@@ -52,6 +52,12 @@ def update_cron(job_id, schedule, command, enabled):
     except Exception as e:
         print(f"Cron Error: {e}")
 
+# --- 辅助函数：强制转换布尔值 ---
+def is_true(val):
+    if isinstance(val, bool):
+        return val
+    return str(val).lower() == 'true'
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -116,7 +122,7 @@ def handle_settings():
             # 订阅 & 任务
             "sub_url": env.get('SUB_URL', ''),
             "cron_sub_enabled": "# JOB_SUB" in cron_out,
-            "cron_sub_sched": "0 5 * * *", # 这里没法从cron反解析，只能给默认值或前端缓存，简化处理
+            "cron_sub_sched": "0 5 * * *", 
             "cron_geo_enabled": "# JOB_GEO" in cron_out,
             "cron_geo_sched": "0 4 * * *"
         })
@@ -125,11 +131,12 @@ def handle_settings():
         d = request.json
         
         # 1. 更新 .env
+        # 这里使用 is_true 确保写入 .env 的是纯粹的 true/false 字符串
         updates = {
-            "NOTIFY_TG": str(d.get('notify_tg', False)).lower(),
+            "NOTIFY_TG": str(is_true(d.get('notify_tg'))).lower(),
             "TG_BOT_TOKEN": d.get('tg_token', ''),
             "TG_CHAT_ID": d.get('tg_id', ''),
-            "NOTIFY_API": str(d.get('notify_api', False)).lower(),
+            "NOTIFY_API": str(is_true(d.get('notify_api'))).lower(),
             "NOTIFY_API_URL": d.get('api_url', ''),
             "SUB_URL": d.get('sub_url', '')
         }
@@ -159,13 +166,13 @@ def handle_settings():
         with open(ENV_FILE, 'w') as f:
             f.writelines(new_lines)
 
-        # 2. 更新 Crontab (找回的功能!)
-        # 订阅更新任务
+        # 2. 更新 Crontab (修复点)
+        # 只有当 is_true 返回 True 时，才启用任务
         update_cron(
             "# JOB_SUB", 
             d.get('cron_sub_sched', '0 5 * * *'), 
             f"bash {SCRIPT_DIR}/update_subscription.sh >/dev/null 2>&1", 
-            d.get('cron_sub_enabled')
+            is_true(d.get('cron_sub_enabled'))
         )
         
         # Geo 更新任务
@@ -173,7 +180,7 @@ def handle_settings():
             "# JOB_GEO", 
             d.get('cron_geo_sched', '0 4 * * *'), 
             f"bash {SCRIPT_DIR}/update_geo.sh >/dev/null 2>&1", 
-            d.get('cron_geo_enabled')
+            is_true(d.get('cron_geo_enabled'))
         )
 
         return jsonify({"success": True, "message": "所有设置已保存 (Crontab 已更新)"})
