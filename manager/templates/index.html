@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -277,7 +276,6 @@
             body.removeAttribute('data-theme');
             icon.classList.replace('bi-sun-fill', 'bi-moon-stars-fill');
             localStorage.setItem('theme', 'light');
-            // 更新 Meta 颜色适配 Safari 状态栏
             document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff');
         } else {
             body.setAttribute('data-theme', 'dark');
@@ -288,20 +286,24 @@
     }
     if (localStorage.getItem('theme') === 'dark') toggleTheme();
 
-    // --- 标签页记忆 ---
+    // --- 标签页记忆与初始化修复 ---
     const tabButtons = document.querySelectorAll('button[data-bs-toggle="pill"]');
     tabButtons.forEach(btn => {
         btn.addEventListener('shown.bs.tab', event => {
             localStorage.setItem('activeTab', event.target.id);
         });
     });
+    
     const activeTabId = localStorage.getItem('activeTab');
     if (activeTabId) {
         const tabTrigger = document.getElementById(activeTabId);
         if(tabTrigger) {
             const tabInstance = new bootstrap.Tab(tabTrigger);
             tabInstance.show();
+            
+            // [修复1] 补全初始化逻辑：如果是通知页，也需要加载设置
             if(activeTabId === 'tab-tasks-btn') loadConfig();
+            if(activeTabId === 'tab-notify-btn') loadSettings(); 
             if(activeTabId === 'tab-logs-btn') loadLogs();
         }
     }
@@ -351,16 +353,30 @@
 
     function loadSettings() {
         api('/settings').then(res => {
-            document.getElementById('notify_tg').checked = res.notify_tg;
+            // [修复2] 强制类型转换，解决后端返回 "false" 字符串导致前端判定为 true 的问题
+            const isTrue = (val) => val === true || val === 'true';
+
+            document.getElementById('notify_tg').checked = isTrue(res.notify_tg);
             document.getElementById('tg_token').value = res.tg_token;
             document.getElementById('tg_id').value = res.tg_id;
-            document.getElementById('notify_api').checked = res.notify_api;
+            
+            document.getElementById('notify_api').checked = isTrue(res.notify_api);
             document.getElementById('api_url').value = res.api_url;
+            
             if(document.getElementById('sub_url')) document.getElementById('sub_url').value = res.sub_url; 
-            if(document.getElementById('cron_sub_enabled')) document.getElementById('cron_sub_enabled').checked = res.cron_sub_enabled;
-            if(document.getElementById('cron_sub_sched')) document.getElementById('cron_sub_sched').value = res.cron_sub_sched;
-            if(document.getElementById('cron_geo_enabled')) document.getElementById('cron_geo_enabled').checked = res.cron_geo_enabled;
-            if(document.getElementById('cron_geo_sched')) document.getElementById('cron_geo_sched').value = res.cron_geo_sched;
+            
+            // 自动化任务部分的修复
+            if(document.getElementById('cron_sub_enabled')) 
+                document.getElementById('cron_sub_enabled').checked = isTrue(res.cron_sub_enabled);
+            
+            if(document.getElementById('cron_sub_sched')) 
+                document.getElementById('cron_sub_sched').value = res.cron_sub_sched;
+            
+            if(document.getElementById('cron_geo_enabled')) 
+                document.getElementById('cron_geo_enabled').checked = isTrue(res.cron_geo_enabled);
+            
+            if(document.getElementById('cron_geo_sched')) 
+                document.getElementById('cron_geo_sched').value = res.cron_geo_sched;
         });
     }
 
