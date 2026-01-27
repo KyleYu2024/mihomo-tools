@@ -23,13 +23,13 @@ fi
 show_menu() {
     clear
     echo -e "${GREEN}====================================${NC}"
-    echo -e "${GREEN}    Mihomo 模块化管理工具 (2026版)   ${NC}"
+    echo -e "${GREEN}    Mihomo 模块化管理工具  ${NC}"
     echo -e "${GREEN}====================================${NC}"
     echo -e "1. 安装/更新 内核 (install_kernel)"
     echo -e "2. 管理服务 (启动/停止/重启/状态)"
     echo -e "3. 更新配置 (Sub-Store/本地/URL)"
-    echo -e "4. 查看实时日志 - [待开发]"
-    echo -e "5. 设置自动更新与自修复 - [待开发]"
+    echo -e "4. 查看实时日志"
+    echo -e "5. 设置自动更新与自修复"
     echo -e "6. 更新 Geo 数据库 (geoip/geosite)"
     echo -e "0. 退出脚本"
     echo -e "${GREEN}====================================${NC}"
