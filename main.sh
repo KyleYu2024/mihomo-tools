@@ -58,10 +58,11 @@ show_menu() {
     echo -e "5. 自动化任务 (看门狗/定时更新订阅)"
     echo -e "6. 更新 Geo 数据库 (geoip/geosite)"
     echo -e "7. 通知的配置与测试"
-    echo -e "8. 初始化网关网络 (TUN模式前置)"  # <--- 新增
+    echo -e "8. 初始化网关网络 (TUN模式前置)" 
+    echo -e "${RED}9. 卸载 Mihomo 工具箱${NC}"  
     echo -e "0. 退出脚本"
     echo -e "${GREEN}===========================================${NC}"
-    read -p "请输入选项 [0-7]: " choice  
+    read -p "请输入选项 [0-9]: " choice  
 }
 
 # 6. 逻辑分发
@@ -123,6 +124,12 @@ while true; do
             # --- 积木 8：一键网络初始化 ---
             bash ${SCRIPT_PATH}/gateway_init.sh
             read -n 1 -s -r -p "按任意键返回菜单..."
+            ;;
+        9)
+            # --- 积木 9：卸载 ---
+            bash ${SCRIPT_PATH}/uninstall.sh
+            # 卸载完脚本本身都没了，直接退出
+            exit 0
             ;;    
         0)
             echo "退出脚本。"
