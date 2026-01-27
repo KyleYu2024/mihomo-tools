@@ -1,4 +1,3 @@
-
 #!/bin/bash
 # scripts/notify.sh
 
@@ -16,9 +15,9 @@ CURRENT_TIME=$(date "+%Y-%m-%d %H:%M:%S")
 if [[ "$NOTIFY_TG" == "true" && -n "$TG_BOT_TOKEN" && -n "$TG_CHAT_ID" ]]; then
     # 构造消息结构:
     # 标题 (加粗)
-    # 📅 YYYY-MM-DD HH:MM:SS
     # 内容
-    TG_MSG="<b>${TITLE}</b>%0A📅 ${CURRENT_TIME}%0A${CONTENT}"
+    # 📅 YYYY-MM-DD HH:MM:SS (移到了最后)
+    TG_MSG="<b>${TITLE}</b>%0A${CONTENT}%0A%0A📅 ${CURRENT_TIME}"
     
     curl -s -o /dev/null -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
         -d chat_id="${TG_CHAT_ID}" \
@@ -28,11 +27,10 @@ fi
 
 # 2. Webhook API (JSON 格式)
 if [[ "$NOTIFY_API" == "true" && -n "$NOTIFY_API_URL" ]]; then
-    # 构造内容: [时间] 内容
-    # 为了通用性，我们在内容前加时间戳
-    API_MSG="[${CURRENT_TIME}] ${CONTENT}"
+    # 构造内容: 内容 [时间]
+    API_MSG="${CONTENT} [${CURRENT_TIME}]"
     
-    # JSON 转义处理 (防止双引号破坏 JSON)
+    # JSON 转义处理
     SAFE_TITLE=$(echo "$TITLE" | sed 's/"/\\"/g')
     SAFE_MSG=$(echo "$API_MSG" | sed 's/"/\\"/g')
 
