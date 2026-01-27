@@ -113,6 +113,11 @@ while true; do
             bash ${SCRIPT_PATH}/update_geo.sh
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
+        7)
+            # --- 积木 7：通知配置 ---
+            bash ${SCRIPT_PATH}/set_notify.sh
+            read -n 1 -s -r -p "按任意键返回菜单..."
+            ;;    
         0)
             echo "退出脚本。"
             exit 0
