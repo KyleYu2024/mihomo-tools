@@ -43,7 +43,7 @@ def update_cron(job_id, schedule, command, enabled):
                 
         # 2. 如果启用，添加新任务
         if enabled:
-            # 确保日志输出被丢弃，防止 exim4 发邮件报错
+            # 确保日志输出被丢弃
             new_cron.append(f"{schedule} {command} {job_id}")
             
         # 3. 写入新的 Crontab
@@ -79,7 +79,6 @@ def control_service():
         'update_sub': f'bash {SCRIPT_DIR}/update_subscription.sh',
         'net_init': f'bash {SCRIPT_DIR}/gateway_init.sh',
         'fix_logs': 'systemctl restart mihomo',
-        # 通知测试：强制先 source 环境文件
         'test_notify': f'bash {SCRIPT_DIR}/notify.sh "🔔 通知测试" "恭喜！如果你收到这条消息，说明通知配置正确。"'
     }
     
@@ -110,8 +109,9 @@ def handle_config():
 @app.route('/api/settings', methods=['GET', 'POST'])
 def handle_settings():
     if request.method == 'GET':
+        # --- 读取逻辑修复 ---
+        # 现在从 .env 读取所有状态，确保和保存的一致
         env = read_env()
-        cron_out = subprocess.run("crontab -l", shell=True, capture_output=True, text=True).stdout
         return jsonify({
             # 通知
             "notify_tg": env.get('NOTIFY_TG') == 'true',
@@ -119,28 +119,36 @@ def handle_settings():
             "tg_id": env.get('TG_CHAT_ID', ''),
             "notify_api": env.get('NOTIFY_API') == 'true',
             "api_url": env.get('NOTIFY_API_URL', ''),
-            # 订阅 & 任务
+            # 订阅 & 任务 (现在从 ENV 读取，不再依赖 cron 解析)
             "sub_url": env.get('SUB_URL', ''),
-            "cron_sub_enabled": "# JOB_SUB" in cron_out,
-            "cron_sub_sched": "0 5 * * *", 
-            "cron_geo_enabled": "# JOB_GEO" in cron_out,
-            "cron_geo_sched": "0 4 * * *"
+            "cron_sub_enabled": env.get('CRON_SUB_ENABLED') == 'true',
+            "cron_sub_sched": env.get('CRON_SUB_SCHED', '0 5 * * *'), 
+            "cron_geo_enabled": env.get('CRON_GEO_ENABLED') == 'true',
+            "cron_geo_sched": env.get('CRON_GEO_SCHED', '0 4 * * *')
         })
 
     if request.method == 'POST':
         d = request.json
         
-        # 1. 更新 .env
-        # 这里使用 is_true 确保写入 .env 的是纯粹的 true/false 字符串
+        # --- 保存逻辑修复 ---
+        # 1. 准备要写入 .env 的数据
+        # 这里的关键是：把开关状态和时间设定都作为字符串写入文件
         updates = {
             "NOTIFY_TG": str(is_true(d.get('notify_tg'))).lower(),
             "TG_BOT_TOKEN": d.get('tg_token', ''),
             "TG_CHAT_ID": d.get('tg_id', ''),
             "NOTIFY_API": str(is_true(d.get('notify_api'))).lower(),
             "NOTIFY_API_URL": d.get('api_url', ''),
-            "SUB_URL": d.get('sub_url', '')
+            "SUB_URL": d.get('sub_url', ''),
+            
+            # 新增：将自动化任务的配置也持久化保存
+            "CRON_SUB_ENABLED": str(is_true(d.get('cron_sub_enabled'))).lower(),
+            "CRON_SUB_SCHED": d.get('cron_sub_sched', '0 5 * * *'),
+            "CRON_GEO_ENABLED": str(is_true(d.get('cron_geo_enabled'))).lower(),
+            "CRON_GEO_SCHED": d.get('cron_geo_sched', '0 4 * * *')
         }
         
+        # 2. 写入 .env 文件
         lines = []
         if os.path.exists(ENV_FILE):
             with open(ENV_FILE, 'r') as f:
@@ -166,24 +174,23 @@ def handle_settings():
         with open(ENV_FILE, 'w') as f:
             f.writelines(new_lines)
 
-        # 2. 更新 Crontab (修复点)
-        # 只有当 is_true 返回 True 时，才启用任务
+        # 3. 应用 Crontab
+        # 使用刚才保存到 updates 里的值来设置系统任务
         update_cron(
             "# JOB_SUB", 
-            d.get('cron_sub_sched', '0 5 * * *'), 
+            updates['CRON_SUB_SCHED'], 
             f"bash {SCRIPT_DIR}/update_subscription.sh >/dev/null 2>&1", 
-            is_true(d.get('cron_sub_enabled'))
+            updates['CRON_SUB_ENABLED'] == 'true'
         )
         
-        # Geo 更新任务
         update_cron(
             "# JOB_GEO", 
-            d.get('cron_geo_sched', '0 4 * * *'), 
+            updates['CRON_GEO_SCHED'], 
             f"bash {SCRIPT_DIR}/update_geo.sh >/dev/null 2>&1", 
-            is_true(d.get('cron_geo_enabled'))
+            updates['CRON_GEO_ENABLED'] == 'true'
         )
 
-        return jsonify({"success": True, "message": "所有设置已保存 (Crontab 已更新)"})
+        return jsonify({"success": True, "message": "所有设置已保存！"})
 
 @app.route('/api/logs')
 def get_logs():
