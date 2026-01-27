@@ -2,8 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mihomo WEB</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mihomo Web</title>
+    
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ffffff">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -34,6 +42,15 @@
         .sidebar { background: var(--bg-sidebar); min-height: 100vh; padding: 20px; border-right: 1px solid var(--border-color); width: 260px; position: fixed; z-index: 1000; transition: background-color 0.3s; }
         .content-area { margin-left: 260px; padding: 30px; }
         
+        /* 移动端适配 (小于768px) */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: auto; min-height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border-color); padding: 15px; }
+            .content-area { margin-left: 0; padding: 15px; }
+            .nav-pills { flex-direction: row; overflow-x: auto; flex-wrap: nowrap; margin-right: 0 !important; }
+            .nav-link { white-space: nowrap; margin-right: 5px; font-size: 0.9rem; padding: 8px 12px; }
+            .log-box { height: 400px; }
+        }
+
         /* 导航 */
         .nav-link { color: var(--text-muted); margin-bottom: 8px; border-radius: 8px; font-weight: 500; padding: 12px; transition: all 0.2s; cursor: pointer; }
         .nav-link:hover { background-color: rgba(13, 110, 253, 0.1); color: #0d6efd; }
@@ -49,7 +66,7 @@
         .form-control:focus { background-color: var(--input-bg); color: var(--text-main); border-color: #0d6efd; }
         .form-label { color: var(--text-muted); font-size: 0.9em; margin-bottom: 0.3rem; }
         
-        /* 日志样式优化 (仿 Infuse/Emby) */
+        /* 日志样式 */
         .log-box { 
             background: var(--log-bg); 
             font-family: 'JetBrains Mono', 'Consolas', monospace; 
@@ -64,12 +81,15 @@
         .log-entry { margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 2px; display: flex; align-items: flex-start; }
         .log-time { color: #888; margin-right: 10px; min-width: 130px; }
         .log-tag { padding: 1px 6px; border-radius: 4px; font-weight: bold; margin-right: 10px; font-size: 11px; display: inline-block; min-width: 50px; text-align: center; }
-        .tag-info { background: #198754; color: #fff; } /* Green */
-        .tag-warn { background: #ffc107; color: #000; } /* Yellow */
-        .tag-error { background: #dc3545; color: #fff; } /* Red */
-        .tag-debug { background: #6c757d; color: #fff; } /* Grey */
+        .tag-info { background: #198754; color: #fff; }
+        .tag-warn { background: #ffc107; color: #000; }
+        .tag-error { background: #dc3545; color: #fff; }
+        .tag-debug { background: #6c757d; color: #fff; }
         .log-msg { color: #dcdcdc; word-break: break-all; }
 
+        /* Logo 图片样式 */
+        .logo-img { width: 32px; height: 32px; border-radius: 8px; margin-right: 10px; vertical-align: middle; }
+        
         /* 编辑器 */
         textarea#config-editor { font-family: 'Consolas', monospace; font-size: 13px; background-color: var(--input-bg); color: var(--text-main); border: none; }
     </style>
@@ -78,7 +98,11 @@
 
 <div class="sidebar d-flex flex-column">
     <div class="d-flex justify-content-between align-items-center mb-5 px-2">
-        <h3 class="fw-bold text-primary m-0"><i class="bi bi-hdd-network"></i> Mihomo</h3>
+        <div class="d-flex align-items-center">
+            <img src="/static/logo.png" alt="Logo" class="logo-img">
+            <h3 class="fw-bold text-primary m-0" style="font-size: 1.5rem;">Mihomo</h3>
+        </div>
+        
         <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleTheme()" title="切换深色模式">
             <i class="bi bi-moon-stars-fill" id="theme-icon"></i>
         </button>
@@ -90,7 +114,7 @@
         <button class="nav-link" id="tab-notify-btn" data-bs-toggle="pill" data-bs-target="#tab-notify" onclick="loadSettings()"><i class="bi bi-bell"></i> 通知中心</button>
         <button class="nav-link" id="tab-logs-btn" data-bs-toggle="pill" data-bs-target="#tab-logs" onclick="loadLogs()"><i class="bi bi-terminal"></i> 运行日志</button>
     </div>
-    <div class="mt-auto text-muted small ps-2">v2.4 Pro | <span id="ver-info">LXC</span></div>
+    <div class="mt-auto text-muted small ps-2 d-none d-md-block">v2.6 | <span id="ver-info">LXC</span></div>
 </div>
 
 <div class="content-area">
@@ -105,9 +129,9 @@
                                 <span id="status-text" class="text-muted">检测中...</span>
                             </div>
                             <div class="btn-group">
-                                <button class="btn btn-success" onclick="control('start')"><i class="bi bi-play-fill"></i> 启动</button>
-                                <button class="btn btn-warning" onclick="control('restart')"><i class="bi bi-arrow-clockwise"></i> 重启</button>
-                                <button class="btn btn-danger" onclick="control('stop')"><i class="bi bi-stop-fill"></i> 停止</button>
+                                <button class="btn btn-success" onclick="control('start')"><i class="bi bi-play-fill"></i></button>
+                                <button class="btn btn-warning" onclick="control('restart')"><i class="bi bi-arrow-clockwise"></i></button>
+                                <button class="btn btn-danger" onclick="control('stop')"><i class="bi bi-stop-fill"></i></button>
                             </div>
                         </div>
                     </div>
@@ -119,12 +143,12 @@
                         <div class="card-header"><i class="bi bi-lightning-charge"></i> 快捷入口</div>
                         <div class="card-body d-grid gap-3">
                             <button class="btn btn-outline-primary text-start p-3" onclick="window.open('http://'+location.hostname+':9090/ui')">
-                                <div class="fw-bold"><i class="bi bi-window"></i> 打开 Dashboard (Zashboard)</div>
-                                <div class="small opacity-75">查看流量、切换节点、管理规则</div>
+                                <div class="fw-bold"><i class="bi bi-window"></i> 打开 Dashboard</div>
+                                <div class="small opacity-75">Zashboard 面板</div>
                             </button>
                             <button class="btn btn-outline-success text-start p-3" onclick="control('update_geo')">
                                 <div class="fw-bold"><i class="bi bi-geo-alt"></i> 更新 Geo 数据库</div>
-                                <div class="small opacity-75">立即更新 IP 库和域名数据库</div>
+                                <div class="small opacity-75">立即更新 IP 库</div>
                             </button>
                         </div>
                     </div>
@@ -133,7 +157,6 @@
         </div>
 
         <div class="tab-pane fade" id="tab-tasks">
-            
             <div class="card border-primary border-1" style="border-left-width: 4px;">
                 <div class="card-header text-primary">
                     <i class="bi bi-link-45deg"></i> 订阅管理
@@ -142,12 +165,12 @@
                     <label class="form-label fw-bold">机场订阅链接</label>
                     <div class="input-group mb-2">
                         <span class="input-group-text"><i class="bi bi-globe"></i></span>
-                        <input type="text" class="form-control" id="sub_url" placeholder="粘贴你的订阅链接 (http/https)...">
+                        <input type="text" class="form-control" id="sub_url" placeholder="http://...">
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <small class="text-muted">提示：更新订阅会自动下载配置，并智能保留面板端口设置。</small>
-                        <button class="btn btn-primary px-4" onclick="saveAndUpdateSub()">
-                            <i class="bi bi-cloud-download"></i> 保存并立即更新
+                        <small class="text-muted">自动保留面板配置</small>
+                        <button class="btn btn-primary" onclick="saveAndUpdateSub()">
+                            <i class="bi bi-cloud-download"></i> 保存并更新
                         </button>
                     </div>
                 </div>
@@ -155,33 +178,31 @@
 
             <div class="card">
                 <div class="card-header">
-                    <i class="bi bi-clock-history"></i> 自动化任务 (Crontab)
+                    <i class="bi bi-clock-history"></i> 自动化任务
                 </div>
                 <div class="card-body">
                     <div class="row g-4">
                         <div class="col-md-6 border-end border-secondary">
-                            <h6 class="fw-bold text-success"><i class="bi bi-arrow-repeat"></i> 自动更新订阅</h6>
-                            <div class="form-check form-switch my-3">
+                            <h6 class="fw-bold text-success">自动更新订阅</h6>
+                            <div class="form-check form-switch my-2">
                                 <input class="form-check-input" type="checkbox" id="cron_sub_enabled">
-                                <label class="form-check-label">启用定时任务</label>
+                                <label class="form-check-label">开启</label>
                             </div>
-                            <label class="small text-muted">Cron 表达式 (默认: 每天凌晨5点)</label>
                             <input type="text" class="form-control font-monospace mt-1" id="cron_sub_sched" value="0 5 * * *">
                         </div>
                         <div class="col-md-6">
-                            <h6 class="fw-bold text-info"><i class="bi bi-globe2"></i> 自动更新 Geo 库</h6>
-                            <div class="form-check form-switch my-3">
+                            <h6 class="fw-bold text-info">自动更新 Geo</h6>
+                            <div class="form-check form-switch my-2">
                                 <input class="form-check-input" type="checkbox" id="cron_geo_enabled">
-                                <label class="form-check-label">启用定时任务</label>
+                                <label class="form-check-label">开启</label>
                             </div>
-                            <label class="small text-muted">Cron 表达式 (默认: 每天凌晨4点)</label>
                             <input type="text" class="form-control font-monospace mt-1" id="cron_geo_sched" value="0 4 * * *">
                         </div>
                     </div>
                     <hr class="border-secondary">
                     <div class="text-end">
                         <button class="btn btn-secondary" onclick="saveSettings(false)">
-                            <i class="bi bi-save"></i> 仅保存定时任务设置
+                            <i class="bi bi-save"></i> 仅保存设置
                         </button>
                     </div>
                 </div>
@@ -189,8 +210,8 @@
 
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-file-earmark-code"></i> 配置文件编辑器 (config.yaml)</span>
-                    <button class="btn btn-outline-primary btn-sm" onclick="saveConfig()">保存并重启服务</button>
+                    <span><i class="bi bi-file-earmark-code"></i> 配置文件 (config.yaml)</span>
+                    <button class="btn btn-outline-primary btn-sm" onclick="saveConfig()">保存重启</button>
                 </div>
                 <div class="card-body p-0">
                     <textarea id="config-editor" class="form-control" style="height: 500px; padding: 15px;"></textarea>
@@ -202,15 +223,15 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-megaphone"></i> 通知配置</span>
-                    <button class="btn btn-secondary btn-sm" onclick="control('test_notify')"><i class="bi bi-send"></i> 发送测试消息</button>
+                    <button class="btn btn-secondary btn-sm" onclick="control('test_notify')">测试</button>
                 </div>
                 <div class="card-body">
                     <div class="mb-4">
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" id="notify_tg">
-                            <label class="form-check-label fw-bold">启用 Telegram Bot</label>
+                            <label class="form-check-label fw-bold">Telegram Bot</label>
                         </div>
-                        <div class="row g-3 ps-4 border-start border-3 border-primary">
+                        <div class="row g-3 ps-2">
                             <div class="col-md-6"><input type="text" class="form-control" id="tg_token" placeholder="Bot Token"></div>
                             <div class="col-md-6"><input type="text" class="form-control" id="tg_id" placeholder="Chat ID"></div>
                         </div>
@@ -219,13 +240,13 @@
                     <div class="mb-3">
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" id="notify_api">
-                            <label class="form-check-label fw-bold">启用 Webhook API</label>
+                            <label class="form-check-label fw-bold">Webhook API</label>
                         </div>
-                        <div class="ps-4 border-start border-3 border-info">
-                            <input type="text" class="form-control" id="api_url" placeholder="http://10.10.2.11:8088/api/v1/notify...">
+                        <div class="ps-2">
+                            <input type="text" class="form-control" id="api_url" placeholder="http://...">
                         </div>
                     </div>
-                    <button class="btn btn-primary mt-3" onclick="saveSettings(false)">💾 保存通知配置</button>
+                    <button class="btn btn-primary mt-3" onclick="saveSettings(false)">💾 保存配置</button>
                 </div>
             </div>
         </div>
@@ -234,8 +255,8 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">系统日志</h5>
                 <div>
-                    <button class="btn btn-outline-danger btn-sm me-2" onclick="control('fix_logs')">修复日志服务</button>
-                    <button class="btn btn-secondary btn-sm" onclick="loadLogs()">刷新日志</button>
+                    <button class="btn btn-outline-danger btn-sm me-2" onclick="control('fix_logs')">修复</button>
+                    <button class="btn btn-secondary btn-sm" onclick="loadLogs()">刷新</button>
                 </div>
             </div>
             <div id="log-display" class="log-box">
@@ -247,7 +268,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // --- 1. 黑暗模式逻辑 ---
+    // --- 主题逻辑 ---
     function toggleTheme() {
         const body = document.body;
         const icon = document.getElementById('theme-icon');
@@ -255,55 +276,49 @@
             body.removeAttribute('data-theme');
             icon.classList.replace('bi-sun-fill', 'bi-moon-stars-fill');
             localStorage.setItem('theme', 'light');
+            // 更新 Meta 颜色适配 Safari 状态栏
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff');
         } else {
             body.setAttribute('data-theme', 'dark');
             icon.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
             localStorage.setItem('theme', 'dark');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#121212');
         }
     }
-    // 初始化主题
-    if (localStorage.getItem('theme') === 'dark') {
-        toggleTheme(); // Apply dark
-    }
+    if (localStorage.getItem('theme') === 'dark') toggleTheme();
 
-    // --- 2. 标签页记忆逻辑 ---
-    // 监听点击，保存状态
+    // --- 标签页记忆 ---
     const tabButtons = document.querySelectorAll('button[data-bs-toggle="pill"]');
     tabButtons.forEach(btn => {
         btn.addEventListener('shown.bs.tab', event => {
             localStorage.setItem('activeTab', event.target.id);
         });
     });
-    // 加载时恢复
     const activeTabId = localStorage.getItem('activeTab');
     if (activeTabId) {
         const tabTrigger = document.getElementById(activeTabId);
         if(tabTrigger) {
             const tabInstance = new bootstrap.Tab(tabTrigger);
             tabInstance.show();
-            // 如果是配置或日志页，顺便触发加载
             if(activeTabId === 'tab-tasks-btn') loadConfig();
             if(activeTabId === 'tab-logs-btn') loadLogs();
         }
     }
 
-    // --- 3. 基础 API 封装 ---
+    // --- API ---
     async function api(path, data) {
         const opts = data ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) } : {};
         return (await fetch('/api'+path, opts)).json();
     }
 
     function control(act) {
-        if(act === 'test_notify') {
-            if(!confirm("确定发送测试消息吗？建议先保存配置。")) return;
-        }
+        if(act === 'test_notify' && !confirm("确定发送测试消息吗？建议先保存配置。")) return;
         api('/control', {action: act}).then(res => {
             alert(res.message || (res.success ? '操作成功' : '操作失败'));
             if(act === 'fix_logs') loadLogs();
         });
     }
 
-    // --- 4. 配置与订阅逻辑 ---
     function loadConfig() {
         api('/config').then(res => {
             document.getElementById('config-editor').value = res.content || '';
@@ -320,27 +335,19 @@
         });
     }
 
-    // 关键修复：更新成功后自动刷新编辑器
     function saveAndUpdateSub() {
         const url = document.getElementById('sub_url').value;
         if(!url) return alert("请先填写订阅链接！");
         if(!confirm("确定要保存链接并覆盖当前配置文件吗？")) return;
-
-        // 保存设置
         saveSettings(true).then(() => {
-            // 触发更新
-            alert("正在下载订阅，请稍候...下载完成后编辑器会自动刷新。");
+            alert("正在下载订阅...完成后编辑器会自动刷新。");
             api('/control', {action: 'update_sub'}).then(res => {
                 alert(res.message);
-                if(res.success) {
-                    // 更新成功，强制刷新编辑器内容！
-                    loadConfig();
-                }
+                if(res.success) loadConfig();
             });
         });
     }
 
-    // --- 5. 设置加载与保存 ---
     function loadSettings() {
         api('/settings').then(res => {
             document.getElementById('notify_tg').checked = res.notify_tg;
@@ -348,7 +355,6 @@
             document.getElementById('tg_id').value = res.tg_id;
             document.getElementById('notify_api').checked = res.notify_api;
             document.getElementById('api_url').value = res.api_url;
-            
             if(document.getElementById('sub_url')) document.getElementById('sub_url').value = res.sub_url; 
             if(document.getElementById('cron_sub_enabled')) document.getElementById('cron_sub_enabled').checked = res.cron_sub_enabled;
             if(document.getElementById('cron_sub_sched')) document.getElementById('cron_sub_sched').value = res.cron_sub_sched;
@@ -374,49 +380,31 @@
         return res;
     }
 
-    // --- 6. 日志解析与美化 (核心改进) ---
     function loadLogs() {
         api('/logs').then(res => {
             const rawLogs = res.logs || "";
             const logContainer = document.getElementById('log-display');
-            
-            // 1. 分割行 -> 2. 过滤空行 -> 3. 倒序排列
             const lines = rawLogs.split('\n').filter(line => line.trim() !== '').reverse();
-            
             let html = '';
             lines.forEach(line => {
-                // 正则匹配 Mihomo/Logrus 格式: time="xxx" level=xxx msg="xxx"
-                // 示例: time="2026-01-27T11:06:30Z" level=info msg="Configuration complete"
                 const match = line.match(/time="([^"]+)" level=([^ ]+) msg="([^"]+)"/);
-                
                 if (match) {
-                    let time = match[1].replace('T', ' ').split('.')[0]; // 简单处理时间
+                    let time = match[1].replace('T', ' ').split('.')[0];
                     let level = match[2].toUpperCase();
                     let msg = match[3];
-                    
                     let badgeClass = 'tag-info';
                     if(level === 'WARNING' || level === 'WARN') badgeClass = 'tag-warn';
                     if(level === 'ERROR' || level === 'FATAL') badgeClass = 'tag-error';
                     if(level === 'DEBUG') badgeClass = 'tag-debug';
-                    
-                    html += `
-                        <div class="log-entry">
-                            <span class="log-tag ${badgeClass}">${level}</span>
-                            <span class="log-time">${time}</span>
-                            <span class="log-msg">${msg}</span>
-                        </div>
-                    `;
+                    html += `<div class="log-entry"><span class="log-tag ${badgeClass}">${level}</span><span class="log-time">${time}</span><span class="log-msg">${msg}</span></div>`;
                 } else {
-                    // 匹配不到格式的普通日志
                     html += `<div class="log-entry"><span class="log-msg text-muted">${line}</span></div>`;
                 }
             });
-            
             logContainer.innerHTML = html;
         });
     }
 
-    // 自动刷新状态
     setInterval(() => {
         api('/status').then(res => {
             const el = document.getElementById('status-text');
