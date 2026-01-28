@@ -1,18 +1,13 @@
 services:
   mihomo:
     build: .
-    container_name: mihomo-pro
-    image: mihomo-pro:latest
+    container_name: mihomo-nas
+    image: mihomo-nas:latest
     restart: always
-    network_mode: "host"  # 强烈建议：透明网关/DNS监听必须用 host 模式
-    privileged: true      # 必需：为了操作 TUN 设备和 iptables
+    network_mode: "host" #web端口7838，dns端口1053
     volumes:
-      # 挂载核心配置目录 (包含 config.yaml, .env 等)
       - ./config:/etc/mihomo
-      # 挂载日志目录 (可选，方便在宿主机看)
       - ./logs:/var/log
     environment:
-      - WEB_USER=admin        # 可以在这里覆盖默认密码
-      - WEB_SECRET=admin2026  # 可以在这里覆盖默认密码
-    cap_add:
-      - NET_ADMIN           # 如果不用 network_mode: host，这个必须加
+      - WEB_USER=admin
+      - WEB_SECRET=password
