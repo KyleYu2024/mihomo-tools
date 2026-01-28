@@ -1,1 +1,491 @@
 
+# ========== 节点订阅 ==========
+proxy-providers:
+  ap1:
+    type: http
+    url: "节点订阅链接"
+    interval: 86400
+    path: ./providers/ap1.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: http://www.gstatic.com/generate_204
+
+# 入站监听 (将你的 SS 监听写在这里)
+listeners:
+  - name: "ss-inbound"
+    type: shadowsocks
+    port: 45678
+    password: "GjD658hdgiajdgail12hZ78Gt1234"
+    cipher: aes-256-gcm
+    udp: true      
+
+proxies:
+  - { name: 'Home', type: ss, server: abc.com, port: 45678, cipher: aes-256-gcm, password: GjD658hdgiajdgail12hZ78Gt1234, udp: false }
+
+
+# ========== 策略组 ==========
+proxy-groups:
+  - name: "♻️ 自动选择"
+    type: fallback
+    proxies:
+      - 🪜 自建节点
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG    
+      
+  - name: "🪜 自建节点"
+    type: url-test
+    include-all: true
+    filter: "BWG"
+    
+  - name: YouTube
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: AI
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: Telegram
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: Google
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: Netflix
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: Spotify
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: GlobalGame
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: GlobalMedia
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - 🇺🇸 US
+      - 🇭🇰 HK
+      - 🇯🇵 JP
+      - 🇸🇬 SG
+
+  - name: "🇭🇰 HK"
+    type: url-test
+    include-all: true
+    filter: "港|HK|Hong|Hong Kong"
+
+  - name: "🇯🇵 JP"
+    type: url-test
+    include-all: true
+    filter: "日|JP|Japan|Tokyo"
+
+  - name: "🇺🇸 US"
+    type: url-test
+    include-all: true
+    filter: "美|US|United States|America|Los Angeles"
+
+  - name: "🇸🇬 SG"
+    type: url-test
+    include-all: true
+    filter: "(?i)新加|狮城|SG|singap"
+
+  - name: "我的节点"
+    type: fallback
+    include-all: true
+    filter: "^(?!.*(emby|剩余|重置|套餐|Expire|Traffic)).*$"
+
+  - name: "Final"
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - DIRECT
+
+# ========== 规则 (Rules) ==========
+rules:
+  - IP-CIDR,10.10.10.0/24,Home,no-resolve
+  - DOMAIN-SUFFIX,tencentscf.com,DIRECT
+  - DOMAIN-SUFFIX,movie-pilot.org,♻️ 自动选择
+  - DOMAIN-SUFFIX,themoviedb.org,♻️ 自动选择
+  - DOMAIN-SUFFIX,fanart.tv,♻️ 自动选择
+  - DOMAIN-SUFFIX,ipify.org,♻️ 自动选择
+  - DOMAIN-SUFFIX,docker.com,♻️ 自动选择
+  - DOMAIN-SUFFIX,docker.io,♻️ 自动选择
+  - DOMAIN-SUFFIX,pypi.org,♻️ 自动选择
+  - DOMAIN-SUFFIX,ghgo.xyz,♻️ 自动选择
+  - DOMAIN-SUFFIX,qichiyu.com,♻️ 自动选择
+  - DOMAIN-SUFFIX,nanobanana.ai,AI
+  - DOMAIN-SUFFIX,vme50.cyou,♻️ 自动选择
+  - RULE-SET,Docker,♻️ 自动选择
+  - RULE-SET,GitHub,♻️ 自动选择
+  - RULE-SET,115,DIRECT
+  - RULE-SET,ChinaMedia,DIRECT
+  - RULE-SET,steamCN,DIRECT
+  - RULE-SET,steam,GlobalGame
+  - RULE-SET,Epic,GlobalGame
+  - RULE-SET,sony,GlobalGame
+  - RULE-SET,Nintendo,GlobalGame
+  - RULE-SET,Netflix,Netflix
+  - RULE-SET,Spotify,Spotify
+  - RULE-SET,openai,AI
+  - RULE-SET,Gemini,AI
+  - RULE-SET,youtube,YouTube
+  - RULE-SET,telegram,Telegram
+  - RULE-SET,google,Google
+  - RULE-SET,GlobalMedia,GlobalMedia
+  - RULE-SET,PrivateTracker,DIRECT
+  - RULE-SET,reject,REJECT
+  - RULE-SET,icloud,DIRECT
+  - RULE-SET,apple,DIRECT
+  - RULE-SET,direct,DIRECT
+  - RULE-SET,private,DIRECT
+  - RULE-SET,proxy,♻️ 自动选择
+  - RULE-SET,gfw,♻️ 自动选择
+  - RULE-SET,greatfire,♻️ 自动选择
+  - RULE-SET,tld-not-cn,♻️ 自动选择
+  - RULE-SET,lancidr,DIRECT
+  - RULE-SET,cncidr,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,Final
+
+# ========== 规则集提供器 (Rule Providers) ==========
+rule-providers:
+  Epic:
+    type: http
+    path: ./ruleset/Epic.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Epic/Epic.yaml
+    interval: 600
+    behavior: classical
+  sony:
+    type: http
+    path: ./ruleset/sony.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Sony/Sony.yaml
+    interval: 600
+    behavior: classical
+  steam:
+    type: http
+    path: ./ruleset/steam.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Steam/Steam.yaml
+    interval: 600
+    behavior: classical
+  steamCN:
+    type: http
+    path: ./ruleset/steamCN.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/SteamCN/SteamCN.yaml
+    interval: 600
+    behavior: classical
+  Nintendo:
+    type: http
+    path: ./ruleset/Nintendo.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Nintendo/Nintendo.yaml
+    interval: 600
+    behavior: classical
+  Netflix:
+    type: http
+    path: ./ruleset/Netflix.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Netflix/Netflix.yaml
+    interval: 600
+    behavior: classical
+  youtube:
+    type: http
+    path: ./ruleset/YouTube.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube.yaml
+    interval: 600
+    behavior: classical
+  GlobalMedia:
+    type: http
+    path: ./ruleset/GlobalMedia.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GlobalMedia/GlobalMedia.yaml
+    interval: 600
+    behavior: classical
+  ChinaMedia:
+    type: http
+    path: ./ruleset/ChinaMedia.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaMedia/ChinaMedia.yaml
+    interval: 600
+    behavior: classical
+  Spotify:
+    type: http
+    path: ./ruleset/Spotify.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Spotify/Spotify.yaml
+    interval: 600
+    behavior: classical
+  openai:
+    type: http
+    path: ./ruleset/OpenAI.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.yaml
+    interval: 600
+    behavior: classical
+  Gemini:
+    type: http
+    path: ./ruleset/Gemini.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Gemini/Gemini.yaml
+    interval: 600
+    behavior: classical
+  telegram:
+    type: http
+    path: ./ruleset/Telegram.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Telegram/Telegram.yaml
+    interval: 600
+    behavior: classical
+  google:
+    type: http
+    path: ./ruleset/Google.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Google/Google.yaml
+    interval: 600
+    behavior: classical
+  115:
+    type: http
+    path: ./ruleset/115.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/115/115.yaml
+    interval: 86400
+    behavior: domain
+  GitHub:
+    type: http
+    path: ./ruleset/GitHub.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GitHub/GitHub.yaml
+    interval: 86400
+    behavior: domain
+  Docker:
+    type: http
+    path: ./ruleset/Docker.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Docker/Docker.yaml
+    interval: 86400
+    behavior: domain
+  PrivateTracker:
+    type: http
+    path: ./ruleset/PrivateTracker.yaml
+    url: https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/PrivateTracker/PrivateTracker.yaml
+    interval: 86400
+    behavior: domain
+  reject:
+    type: http
+    path: ./ruleset/reject.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt
+    interval: 86400
+    behavior: domain
+  icloud:
+    type: http
+    path: ./ruleset/icloud.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt
+    interval: 86400
+    behavior: domain
+  apple:
+    type: http
+    path: ./ruleset/apple.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt
+    interval: 86400
+    behavior: domain
+  proxy:
+    type: http
+    path: ./ruleset/proxy.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt
+    interval: 86400
+    behavior: domain
+  direct:
+    type: http
+    path: ./ruleset/direct.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt
+    interval: 86400
+    behavior: domain
+  private:
+    type: http
+    path: ./ruleset/private.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt
+    interval: 86400
+    behavior: domain
+  gfw:
+    type: http
+    path: ./ruleset/gfw.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt
+    interval: 86400
+    behavior: domain
+  greatfire:
+    type: http
+    path: ./ruleset/greatfire.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/greatfire.txt
+    interval: 86400
+    behavior: domain
+  tld-not-cn:
+    type: http
+    path: ./ruleset/tld-not-cn.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt
+    interval: 86400
+    behavior: domain
+  cncidr:
+    type: http
+    path: ./ruleset/cncidr.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt
+    interval: 86400
+    behavior: ipcidr
+  lancidr:
+    type: http
+    path: ./ruleset/lancidr.yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt
+    interval: 86400
+    behavior: ipcidr
+# ========== 全局设置 ==========
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+bind-address: "*"
+ipv6: false
+
+# ========== GeoX (GeoIP/GeoSite) 设置 ==========
+# 开启自动更新
+geo-auto-update: true
+# 更新间隔 (小时)
+geo-update-interval: 24
+
+# 决定使用 .dat 还是 .mmdb 格式
+geodata-mode: true
+
+# 自定义下载地址
+geox-url:
+  geosite: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+  geoip: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat"
+  mmdb: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb"
+  asn: "https://gh-proxy.com/https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb"
+  
+unified-delay: true
+tcp-concurrent: true
+log-level: info
+find-process-mode: off
+global-client-fingerprint: chrome
+keep-alive-idle: 600
+keep-alive-interval: 15
+disable-keep-alive: false
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# ========== 控制面板 ==========
+external-controller: 0.0.0.0:9090
+secret: "1234"
+external-ui: "ui"
+external-ui-url: "https://gh-proxy.com/https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip"
+
+# ========== TUN 模块 ==========
+tun:
+  enable: true
+  stack: system        # 已优化：推荐 Linux 裸核使用 system 栈，性能最高
+  dns-hijack: ["any:53", "tcp://any:53"]
+  auto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+
+# ========== DNS 设置 (已优化分流) ==========
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: false
+  respect-rules: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16 
+  fake-ip-filter-mode: blacklist
+  fake-ip-filter:
+    - "+.cn"
+    - "+.local"
+    - "+.lan"
+    - "time.*.com"
+    - "+.pool.ntp.org"
+    - "+.ntp.tencent.com"
+    - "+.ntp1.aliyun.com"
+    - "+.ntp.ntsc.ac.cn"
+    - "+.cn.ntp.org.cn"
+
+  # 解析 DoH 域名自身及特定连接时使用的基础 DNS
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+    - 1.1.1.1
+    
+  # 解析代理节点域名时使用的 DNS
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+    - https://dns.cloudflare.com/dns-query
+
+  # 【核心分流策略】国内域名精准匹配，直连国内 DoH
+  nameserver-policy:
+    "geosite:cn,private":
+      - https://dns.alidns.com/dns-query
+      - https://doh.pub/dns-query
+    "+.cn,+.bilibili.com,+.alipay.com":
+      - https://dns.alidns.com/dns-query
+
+  # 【默认 DNS (兜底)】国外域名走这里，彻底防污染
+  nameserver:
+    - https://8.8.8.8/dns-query
+    - https://1.1.1.1/dns-query
+    - tls://8.8.4.4:853
+
+# ========== 嗅探配置 ==========
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  force-domain:
+    - "+.v2ex.com"
+  skip-domain:
+    - "+.push.apple.com"
+    - "+.apple.com"
+    - "+.wechat.com"
+    - "+.qq.com"
+    - "+.wechatapp.com"
+    - "+.vivox.com"
+    - "+.oray.com"
+    - "+.sunlogin.net"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
