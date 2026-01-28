@@ -3,9 +3,9 @@ FROM python:3.9-slim
 ENV TZ=Asia/Shanghai
 WORKDIR /app
 
-# 安装基础环境
+# 安装基础环境 (去掉 iptables/iproute2 也可以，既然不当网关，但留着方便排查)
 RUN apt-get update && apt-get install -y \
-    curl git supervisor tzdata iproute2 iptables ca-certificates \
+    curl git supervisor tzdata ca-certificates \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -31,15 +31,15 @@ RUN curl -L https://github.com/MetaCubeX/mihomo/releases/download/v1.18.1/mihomo
 # 准备目录
 RUN mkdir -p /etc/mihomo/scripts /etc/mihomo/ui /var/log
 
-# 安装 Python 依赖
+# 安装依赖
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制配置文件
+# 复制文件
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY manager/ /app/manager/
 
-# 暴露端口: 7838(Web), 7890(Http), 7891(Socks), 9090(API), 53(DNS)
-EXPOSE 7838 7890 7891 9090 53/tcp 53/udp
+# 暴露端口: 7838(Web), 7890(Http), 7891(Socks), 9090(API), 1053(DNS)
+EXPOSE 7838 7890 7891 9090 1053/tcp 1053/udp
 
 CMD ["/usr/bin/supervisord"]
