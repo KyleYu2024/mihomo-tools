@@ -56,9 +56,14 @@ def is_true(val):
     return str(val).lower() == 'true'
 
 def check_creds(username, password):
-    env = read_env()
-    valid_user = env.get('WEB_USER', 'admin')
-    valid_pass = env.get('WEB_SECRET', 'admin')
+    # 1. 读取文件配置
+    file_env = read_env()
+    
+    # 2. 优先使用系统环境变量 (Docker传入)，其次用文件配置，最后用默认值
+    # os.environ.get 会读取 docker-compose environment 里的值
+    valid_user = os.environ.get('WEB_USER') or file_env.get('WEB_USER', 'admin')
+    valid_pass = os.environ.get('WEB_SECRET') or file_env.get('WEB_SECRET', 'admin')
+    
     return username == valid_user and password == valid_pass
 
 # 鉴权装饰器
