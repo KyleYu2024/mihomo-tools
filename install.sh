@@ -208,5 +208,5 @@ systemctl restart mihomo-manager
 
 echo -e "${GREEN}=============================================${NC}"
 echo -e "${GREEN}   ✅ 安装全部完成！${NC}"
-echo -e "${GREEN}   Web 面板: http://IP:8080 ${NC}"
+echo -e "${GREEN}   Web 面板: http://IP:7838 ${NC}"
 echo -e "${GREEN}=============================================${NC}"
