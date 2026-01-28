@@ -77,14 +77,19 @@ touch /var/log/mihomo.log
 chmod 666 /var/log/mihomo.log
 echo "✅ 日志已切换为文件模式。"
 
-# 5. 生成 .env
-echo -e "${YELLOW}[5/8] 生成环境变量...${NC}"
-cat > "${MIHOMO_DIR}/.env" <<EOF
+# 5. 生成 .env (智能防覆盖)
+echo -e "${YELLOW}[5/8] 检查配置环境...${NC}"
+if [ -f "${MIHOMO_DIR}/.env" ]; then
+    echo "✅ 检测到配置文件 (.env) 已存在，跳过初始化，保留您的原有配置。"
+else
+    echo "--> 生成默认 .env..."
+    cat > "${MIHOMO_DIR}/.env" <<EOF
 MIHOMO_PATH="/etc/mihomo"
 DATA_PATH="/etc/mihomo/data"
 SCRIPT_PATH="/etc/mihomo/scripts"
 GH_PROXY="https://gh-proxy.com/"
 EOF
+fi
 
 # 6. 初始化网关
 echo -e "${YELLOW}[6/8] 初始化网关网络...${NC}"
