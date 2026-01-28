@@ -36,8 +36,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制文件
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY manager/ /app/manager/
+RUN mkdir -p /var/log/supervisor && touch /var/log/mihomo.log
 
 # 暴露端口: 7838(Web), 7890(Http), 7891(Socks), 9090(API), 1053(DNS)
 EXPOSE 7838 7890 7891 9090 1053/tcp 1053/udp
