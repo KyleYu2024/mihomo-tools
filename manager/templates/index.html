@@ -37,6 +37,11 @@
             --input-bg: #2b2b2b;
             --log-bg: #000;
         }
+        
+        /* 核心修复：深色模式下的静音文字颜色增强 */
+        [data-theme="dark"] .text-muted {
+            color: #adb5bd !important;
+        }
 
         body { background-color: var(--bg-body); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; transition: background-color 0.3s; }
         
@@ -70,7 +75,6 @@
                 box-shadow: 4px 0 12px rgba(0,0,0,0.1);
                 border-right: none !important;
                 z-index: 9999 !important;
-                /* 关键修复：允许侧边栏内容滚动，防止按钮被挤出屏幕 */
                 overflow-y: auto !important; 
             }
             .sidebar.show { transform: translateX(0); }
@@ -119,6 +123,7 @@
         
         .form-control { background-color: var(--input-bg); border-color: var(--border-color); color: var(--text-main); }
         .form-control:focus { background-color: var(--input-bg); color: var(--text-main); border-color: #0d6efd; }
+        .form-label { color: var(--text-muted); font-size: 0.9em; margin-bottom: 0.3rem; }
         
         .log-box { 
             background: var(--log-bg); 
@@ -187,7 +192,7 @@
         <button class="nav-link" id="tab-logs-btn" data-bs-toggle="pill" data-bs-target="#tab-logs" onclick="closeSidebar()"><i class="bi bi-terminal"></i> 运行日志</button>
         
         <a href="/logout" class="nav-link text-danger mt-3 border border-danger">
-            <i class="bi bi-box-arrow-left"></i> 退出登录
+            <i class="bi bi-box-arrow-left me-2"></i> 退出登录
         </a>
     </div>
 </div>
