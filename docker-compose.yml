@@ -1,8 +1,7 @@
 services:
-  mihomo:
-    build: .
-    container_name: mihomo-nas
-    image: mihomo-nas:latest
+  mihomo-tools:
+    container_name: mihomo-tools
+    image: kyleyu2024/mihomo-tools:latest
     restart: always
     network_mode: "host" #web端口7838，dns端口1053
     volumes:
