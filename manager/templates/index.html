@@ -271,91 +271,55 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-file-earmark-code"></i> 配置文件 (config.yaml)</span>
-                    <button class="btn btn-outline-primary btn-sm" onclick="saveConfig()">保存重启</button>
-                </div>
-                <div class="card-body p-0">
-                    <textarea id="config-editor" class="form-control" style="height: 500px; padding: 15px;"></textarea>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="tab-notify">
-            <div class="card border-danger border-1 mb-4" style="border-left-width: 4px;">
-                <div class="card-header text-danger">
-                    <i class="bi bi-shield-lock"></i> 面板安全设置
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">管理账号</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                <input type="text" class="form-control" id="web_user" placeholder="默认 admin">
+            <div class="tab-pane fade" id="tab-notify">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-megaphone"></i> 通知配置</span>
+                        <button class="btn btn-secondary btn-sm" onclick="control('test_notify')">测试</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="notify_tg">
+                                <label class="form-check-label fw-bold">Telegram Bot</label>
+                            </div>
+                            <div class="row g-3 ps-2">
+                                <div class="col-md-6"><input type="text" class="form-control" id="tg_token" placeholder="Bot Token"></div>
+                                <div class="col-md-6"><input type="text" class="form-control" id="tg_id" placeholder="Chat ID"></div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">管理密码</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-key"></i></span>
-                                <input type="text" class="form-control" id="web_secret" placeholder="默认 admin">
+                        <hr class="border-secondary">
+                        <div class="mb-3">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="notify_api">
+                                <label class="form-check-label fw-bold">Webhook API</label>
+                            </div>
+                            <div class="ps-2">
+                                <input type="text" class="form-control" id="api_url" placeholder="http://...">
                             </div>
                         </div>
+                        <button class="btn btn-primary mt-3" onclick="saveSettings(false)">💾 保存所有设置</button>
                     </div>
-                    <div class="form-text text-muted mt-2"><i class="bi bi-info-circle"></i> 修改并保存后，页面会立刻弹出验证框，请使用新密码重新登录。</div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-megaphone"></i> 通知配置</span>
-                    <button class="btn btn-secondary btn-sm" onclick="control('test_notify')">测试</button>
-                </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="notify_tg">
-                            <label class="form-check-label fw-bold">Telegram Bot</label>
+            <div class="tab-pane fade" id="tab-logs">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">系统日志</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="form-check form-switch me-3">
+                            <input class="form-check-input" type="checkbox" id="auto-scroll-switch" checked>
+                            <label class="form-check-label small text-muted">自动刷新</label>
                         </div>
-                        <div class="row g-3 ps-2">
-                            <div class="col-md-6"><input type="text" class="form-control" id="tg_token" placeholder="Bot Token"></div>
-                            <div class="col-md-6"><input type="text" class="form-control" id="tg_id" placeholder="Chat ID"></div>
-                        </div>
+                        <button class="btn btn-outline-danger btn-sm" onclick="control('fix_logs')">修复日志</button>
                     </div>
-                    <hr class="border-secondary">
-                    <div class="mb-3">
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="notify_api">
-                            <label class="form-check-label fw-bold">Webhook API</label>
-                        </div>
-                        <div class="ps-2">
-                            <input type="text" class="form-control" id="api_url" placeholder="http://...">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary mt-3" onclick="saveSettings(false)">💾 保存所有设置</button>
                 </div>
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="tab-logs">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">系统日志</h5>
-                <div class="d-flex align-items-center">
-                    <div class="form-check form-switch me-3">
-                        <input class="form-check-input" type="checkbox" id="auto-scroll-switch" checked>
-                        <label class="form-check-label small text-muted">自动刷新</label>
-                    </div>
-                    <button class="btn btn-outline-danger btn-sm" onclick="control('fix_logs')">修复日志</button>
+                <div id="log-display" class="log-box">
+                    <div class="text-muted text-center mt-5">等待加载...</div>
                 </div>
-            </div>
-            <div id="log-display" class="log-box">
-                <div class="text-muted text-center mt-5">等待加载...</div>
             </div>
         </div>
     </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -464,7 +428,13 @@
     async function api(path, data) {
         const opts = data ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) } : {};
         const resp = await fetch('/api'+path, opts);
-        if (resp.status === 401) { location.reload(); return; }
+        
+        // 【核心修改】检测 401，跳转到鉴权专用页，解决 iOS 白屏
+        if (resp.status === 401) {
+            window.location.href = '/auth';
+            return;
+        }
+        
         return resp.json();
     }
 
@@ -518,14 +488,13 @@
             if(document.getElementById('cron_geo_sched')) document.getElementById('cron_geo_sched').value = res.cron_geo_sched;
             // 回显鉴权信息
             document.getElementById('web_user').value = res.web_user || 'admin';
-            document.getElementById('web_secret').value = res.web_secret || 'admin';
         });
     }
 
     async function saveSettings(silent = false) {
         const res = await api('/settings', {
+            // 这里只回传用户名(因为只读)，不回传密码(因为改不了)
             web_user: document.getElementById('web_user').value,
-            web_secret: document.getElementById('web_secret').value,
             notify_tg: String(document.getElementById('notify_tg').checked),
             tg_token: document.getElementById('tg_token').value,
             tg_id: document.getElementById('tg_id').value,
@@ -537,10 +506,7 @@
             cron_geo_enabled: document.getElementById('cron_geo_enabled') ? String(document.getElementById('cron_geo_enabled').checked) : 'false',
             cron_geo_sched: document.getElementById('cron_geo_sched') ? document.getElementById('cron_geo_sched').value : ''
         });
-        if(!silent) {
-            alert(res.message);
-            if(res.success) location.reload(); // 强制重载以触发新密码登录
-        }
+        if(!silent) alert(res.message);
         return res;
     }
 
