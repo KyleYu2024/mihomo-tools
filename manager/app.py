@@ -10,11 +10,8 @@ SCRIPT_DIR = "/etc/mihomo/scripts"
 ENV_FILE = f"{MIHOMO_DIR}/.env"
 CONFIG_FILE = f"{MIHOMO_DIR}/config.yaml"
 
-# --- 核心工具函数 ---
-
 def run_cmd(cmd):
     try:
-        # 增加 sudo 兼容性
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         return result.returncode == 0, result.stdout + result.stderr
     except Exception as e:
@@ -30,48 +27,39 @@ def read_env():
                     if '=' in line and not line.startswith('#'):
                         parts = line.split('=', 1)
                         if len(parts) == 2:
-                            # 去除引号和空格
                             env_data[parts[0].strip()] = parts[1].strip().strip('"').strip("'")
         except:
             pass
     return env_data
 
 def update_cron(job_id, schedule, command, enabled):
-    """Crontab 管理函数"""
     try:
         res = subprocess.run("crontab -l", shell=True, capture_output=True, text=True)
-        current_cron = res.stdout.strip().split('\n')
-        
+        current_cron = res.stdout.strip().split('\n') if res.stdout else []
         new_cron = []
         for line in current_cron:
             if job_id not in line and line.strip() != "":
                 new_cron.append(line)
-                
         if enabled:
             new_cron.append(f"{schedule} {command} {job_id}")
-            
         cron_str = "\n".join(new_cron) + "\n"
         subprocess.run(f"echo '{cron_str}' | crontab -", shell=True)
     except Exception as e:
         print(f"Cron Error: {e}")
 
 def is_true(val):
-    if isinstance(val, bool):
-        return val
     return str(val).lower() == 'true'
 
-# --- 鉴权模块 (新增) ---
+# --- 鉴权核心逻辑 ---
 
 def check_auth(username, password):
-    """验证账号密码"""
     env = read_env()
-    # 默认账号: admin, 默认密码: admin (如果没有在 .env 配置)
+    # 如果 .env 里没配，默认 admin/admin
     valid_user = env.get('WEB_USER', 'admin')
     valid_pass = env.get('WEB_SECRET', 'admin')
     return username == valid_user and password == valid_pass
 
 def authenticate():
-    """发送 401 响应，触发浏览器弹窗"""
     return Response(
         'Login Required', 401,
         {'WWW-Authenticate': 'Basic realm="Mihomo Login"'}
@@ -86,7 +74,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# --- 路由定义 (全部加上 @login_required) ---
+# --- 路由 ---
 
 @app.route('/')
 @login_required
@@ -103,7 +91,6 @@ def get_status():
 @login_required
 def control_service():
     action = request.json.get('action')
-    
     cmds = {
         'start': 'systemctl start mihomo',
         'stop': 'systemctl stop mihomo',
@@ -114,7 +101,6 @@ def control_service():
         'fix_logs': 'systemctl restart mihomo',
         'test_notify': f'bash {SCRIPT_DIR}/notify.sh "🔔 通知测试" "恭喜！如果你收到这条消息，说明通知配置正确。"'
     }
-    
     if action in cmds:
         success, msg = run_cmd(cmds[action])
         return jsonify({"success": success, "message": msg})
@@ -129,11 +115,9 @@ def handle_config():
             try:
                 with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
                     content = f.read()
-            except:
-                pass
+            except: pass
         env = read_env()
         return jsonify({"content": content, "sub_url": env.get('SUB_URL', '')})
-        
     if request.method == 'POST':
         content = request.json.get('content')
         try:
@@ -149,16 +133,13 @@ def handle_settings():
     if request.method == 'GET':
         env = read_env()
         return jsonify({
-            # 鉴权信息 (回显给前端)
+            # 只回显用户名，不回显密码
             "web_user": env.get('WEB_USER', 'admin'),
-            "web_secret": env.get('WEB_SECRET', 'admin'),
-            # 通知
             "notify_tg": env.get('NOTIFY_TG') == 'true',
             "tg_token": env.get('TG_BOT_TOKEN', ''),
             "tg_id": env.get('TG_CHAT_ID', ''),
             "notify_api": env.get('NOTIFY_API') == 'true',
             "api_url": env.get('NOTIFY_API_URL', ''),
-            # 订阅 & 任务
             "sub_url": env.get('SUB_URL', ''),
             "cron_sub_enabled": env.get('CRON_SUB_ENABLED') == 'true',
             "cron_sub_sched": env.get('CRON_SUB_SCHED', '0 5 * * *'), 
@@ -168,10 +149,8 @@ def handle_settings():
 
     if request.method == 'POST':
         d = request.json
-        
         updates = {
-            "WEB_USER": d.get('web_user', 'admin'),
-            "WEB_SECRET": d.get('web_secret', 'admin'),
+            # 这里不处理 WEB_USER/SECRET，因为我们在安装脚本里处理
             "NOTIFY_TG": str(is_true(d.get('notify_tg'))).lower(),
             "TG_BOT_TOKEN": d.get('tg_token', ''),
             "TG_CHAT_ID": d.get('tg_id', ''),
@@ -188,10 +167,8 @@ def handle_settings():
         if os.path.exists(ENV_FILE):
             with open(ENV_FILE, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-        
         new_lines = []
         updated_keys = set()
-        
         for line in lines:
             if '=' in line and not line.strip().startswith('#'):
                 key = line.split('=')[0].strip()
@@ -202,29 +179,16 @@ def handle_settings():
                     new_lines.append(line)
             else:
                 new_lines.append(line)
-        
         for k, v in updates.items():
             if k not in updated_keys:
                 new_lines.append(f'{k}="{v}"\n')
-                
         with open(ENV_FILE, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
 
-        update_cron(
-            "# JOB_SUB", 
-            updates['CRON_SUB_SCHED'], 
-            f"bash {SCRIPT_DIR}/update_subscription.sh >/dev/null 2>&1", 
-            updates['CRON_SUB_ENABLED'] == 'true'
-        )
-        
-        update_cron(
-            "# JOB_GEO", 
-            updates['CRON_GEO_SCHED'], 
-            f"bash {SCRIPT_DIR}/update_geo.sh >/dev/null 2>&1", 
-            updates['CRON_GEO_ENABLED'] == 'true'
-        )
+        update_cron("# JOB_SUB", updates['CRON_SUB_SCHED'], f"bash {SCRIPT_DIR}/update_subscription.sh >/dev/null 2>&1", updates['CRON_SUB_ENABLED'] == 'true')
+        update_cron("# JOB_GEO", updates['CRON_GEO_SCHED'], f"bash {SCRIPT_DIR}/update_geo.sh >/dev/null 2>&1", updates['CRON_GEO_ENABLED'] == 'true')
 
-        return jsonify({"success": True, "message": "配置已保存 (如修改了密码，刷新页面后需重新登录)"})
+        return jsonify({"success": True, "message": "配置已保存"})
 
 @app.route('/api/logs')
 @login_required
