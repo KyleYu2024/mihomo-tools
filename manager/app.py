@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, redirect
 from functools import wraps
 import subprocess
 import os
@@ -54,7 +54,6 @@ def is_true(val):
 
 def check_auth(username, password):
     env = read_env()
-    # 如果 .env 里没配，默认 admin/admin
     valid_user = env.get('WEB_USER', 'admin')
     valid_pass = env.get('WEB_SECRET', 'admin')
     return username == valid_user and password == valid_pass
@@ -76,10 +75,17 @@ def login_required(f):
 
 # --- 路由 ---
 
+# 1. 首页：【核心改动】去掉了 @login_required，解决 iOS 白屏
 @app.route('/')
-@login_required
 def index():
     return render_template('index.html')
+
+# 2. 鉴权触发器：【新增】专门用来触发浏览器弹窗
+@app.route('/auth')
+@login_required
+def force_auth():
+    # 登录成功后跳回首页
+    return redirect('/')
 
 @app.route('/api/status')
 @login_required
@@ -133,7 +139,6 @@ def handle_settings():
     if request.method == 'GET':
         env = read_env()
         return jsonify({
-            # 只回显用户名，不回显密码
             "web_user": env.get('WEB_USER', 'admin'),
             "notify_tg": env.get('NOTIFY_TG') == 'true',
             "tg_token": env.get('TG_BOT_TOKEN', ''),
@@ -150,7 +155,6 @@ def handle_settings():
     if request.method == 'POST':
         d = request.json
         updates = {
-            # 这里不处理 WEB_USER/SECRET，因为我们在安装脚本里处理
             "NOTIFY_TG": str(is_true(d.get('notify_tg'))).lower(),
             "TG_BOT_TOKEN": d.get('tg_token', ''),
             "TG_CHAT_ID": d.get('tg_id', ''),
