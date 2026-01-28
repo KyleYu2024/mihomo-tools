@@ -15,8 +15,7 @@ SCRIPT_DIR = "/etc/mihomo/scripts"
 ENV_FILE = f"{MIHOMO_DIR}/.env"
 CONFIG_FILE = f"{MIHOMO_DIR}/config.yaml"
 
-# === 嵌入式登录页面 HTML ===
-# 核心修改：form action 显式指向 /login，因为现在首页直接渲染这个HTML，不指定 action 会 post 给自己
+# === 嵌入式登录页面 HTML (PWA 修复版) ===
 LOGIN_PAGE_HTML = """
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -24,16 +23,26 @@ LOGIN_PAGE_HTML = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mihomo 登录</title>
+    
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: #f4f6f9; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         .login-card { width: 100%; max-width: 400px; padding: 2rem; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
         .btn-primary { width: 100%; padding: 10px; font-weight: bold; }
         .logo { width: 60px; height: 60px; margin-bottom: 1rem; border-radius: 12px; }
+        
+        /* 深色模式适配 */
         @media (prefers-color-scheme: dark) {
             body { background: #121212; color: #eee; }
             .login-card { background: #1e1e1e; box-shadow: none; border: 1px solid #333; }
             .form-control { background: #2b2b2b; border-color: #333; color: #eee; }
+            .text-muted { color: #adb5bd !important; } /* 修复深色模式文字 */
         }
     </style>
 </head>
@@ -106,7 +115,6 @@ def check_creds(username, password):
     valid_pass = env.get('WEB_SECRET', 'admin')
     return username == valid_user and password == valid_pass
 
-# 鉴权装饰器：只用于 API 和非首页路由
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -116,8 +124,6 @@ def login_required(f):
             return redirect('/login')
         return f(*args, **kwargs)
     return decorated
-
-# --- 路由 ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -139,16 +145,10 @@ def logout():
     session.pop('logged_in', None)
     return redirect('/login')
 
-# === 核心修复点：首页路由 ===
-# 移除了 @login_required，改为内部判断
 @app.route('/')
 def index():
     if not session.get('logged_in'):
-        # 重点：如果未登录，直接返回登录页 HTML (状态码 200)，而不是 Redirect (状态码 302)
-        # 这能骗过 iOS PWA，让它以为页面加载成功了，从而显示登录框
         return render_template_string(LOGIN_PAGE_HTML)
-    
-    # 已登录，正常显示面板
     return render_template('index.html')
 
 @app.route('/api/status')
