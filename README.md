@@ -58,3 +58,6 @@ git clone https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && ba
 3.  配置webhook通知
 4.  启动/停止/重启 mihomo
 5.  快速跳转到ui面板
+
+##  ⚙️ 高级设置  ##
+在终端用mihomo-cli命令管理页面，可进行内核更新，程序卸载等高级操作
