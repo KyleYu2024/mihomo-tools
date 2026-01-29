@@ -123,7 +123,7 @@ while true; do
         5)
             # 简单展示 crontab
             crontab -l
-            echo -e "\n提示：请使用 Web 面板 (http://IP:8080) 配置定时任务更方便。"
+            echo -e "\n提示：请使用 Web 面板 (http://IP:7838) 配置定时任务更方便。"
             read -n 1 -s -r -p "按任意键返回菜单..."
             ;;
         6)
