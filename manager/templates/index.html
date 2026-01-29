@@ -39,14 +39,10 @@
         }
         
         /* === 核心修复：深色模式可见性优化 === */
-        
-        /* 1. 强制覆盖 form-control 的 placeholder 颜色 */
         [data-theme="dark"] .form-control::placeholder {
-            color: #adb5bd !important; /* 浅灰色，确保可见 */
+            color: #adb5bd !important;
             opacity: 1;
         }
-        
-        /* 2. 强制覆盖所有 text-muted 类的颜色 */
         [data-theme="dark"] .text-muted {
             color: #adb5bd !important;
         }
@@ -253,6 +249,13 @@
                         <span class="input-group-text"><i class="bi bi-globe"></i></span>
                         <input type="text" class="form-control" id="sub_url" placeholder="http://...">
                     </div>
+                    
+                    <label class="form-label fw-bold text-success mt-2">本地直连网段 (防回环)</label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text"><i class="bi bi-diagram-2"></i></span>
+                        <input type="text" class="form-control" id="local_cidr" placeholder="例如: 192.168.1.0/24 (留空则不启用)">
+                    </div>
+
                     <div class="d-flex justify-content-between align-items-center mt-3">
                         <small class="text-muted">自动保留面板配置</small>
                         <button class="btn btn-primary" onclick="saveAndUpdateSub()">
@@ -525,6 +528,10 @@
             document.getElementById('notify_api').checked = isTrue(res.notify_api);
             document.getElementById('api_url').value = res.api_url;
             if(document.getElementById('sub_url')) document.getElementById('sub_url').value = res.sub_url; 
+            
+            // 【修改点】加载本地网段配置
+            if(document.getElementById('local_cidr')) document.getElementById('local_cidr').value = res.local_cidr || '';
+            
             if(document.getElementById('cron_sub_enabled')) document.getElementById('cron_sub_enabled').checked = isTrue(res.cron_sub_enabled);
             if(document.getElementById('cron_sub_sched')) document.getElementById('cron_sub_sched').value = res.cron_sub_sched;
             if(document.getElementById('cron_geo_enabled')) document.getElementById('cron_geo_enabled').checked = isTrue(res.cron_geo_enabled);
@@ -540,6 +547,10 @@
             notify_api: String(document.getElementById('notify_api').checked),
             api_url: document.getElementById('api_url').value,
             sub_url: document.getElementById('sub_url') ? document.getElementById('sub_url').value : '',
+            
+            // 【修改点】保存本地网段配置
+            local_cidr: document.getElementById('local_cidr') ? document.getElementById('local_cidr').value : '',
+
             cron_sub_enabled: document.getElementById('cron_sub_enabled') ? String(document.getElementById('cron_sub_enabled').checked) : 'false',
             cron_sub_sched: document.getElementById('cron_sub_sched') ? document.getElementById('cron_sub_sched').value : '',
             cron_geo_enabled: document.getElementById('cron_geo_enabled') ? String(document.getElementById('cron_geo_enabled').checked) : 'false',
