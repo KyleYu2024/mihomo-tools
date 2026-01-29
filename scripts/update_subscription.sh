@@ -35,6 +35,23 @@ if curl -L -s --fail --retry 3 --connect-timeout 15 -o "$TEMP_FILE" "$SUB_URL"; 
 
         # 4. 内容有变动，执行更新
         echo "🔄 检测到订阅更新，正在应用..."
+
+        # =======================================================
+        # 【升级版】 动态防回环混入 (Web UI 配置优先)
+        # =======================================================
+        if [ -n "$LOCAL_CIDR" ]; then
+            echo "🔧 检测到本地网段设置: $LOCAL_CIDR"
+            
+            if grep -q "^rules:" "$TEMP_FILE"; then
+                echo "➡️  正在注入 DIRECT 规则..."
+                # 动态注入配置的网段
+                sed -i "/^rules:/a \  - IP-CIDR,${LOCAL_CIDR},DIRECT,no-resolve" "$TEMP_FILE"
+            fi
+        else
+            echo "⏩ 未配置本地网段 (LOCAL_CIDR)，跳过防回环注入。"
+        fi
+        # =======================================================
+
         mv "$TEMP_FILE" "$CONFIG_FILE"
         
         # 补充 UI 配置 (防止纯订阅覆盖了 WebUI 配置)
