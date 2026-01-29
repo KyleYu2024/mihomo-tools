@@ -52,9 +52,9 @@
 git clone https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && bash /etc/mihomo-tools/install.sh
 
 ```
-##  WEB UI配置  ##
-💻http://ip:7838进入web ui
-可配置修改config.yaml
-配置webhook通知
-启动/停止/重启 mihomo
-快速跳转到ui面板
+##  🖥 WEB UI配置  ##
+1.  http://ip:7838进入web ui
+2.  可配置修改config.yaml
+3.  配置webhook通知
+4.  启动/停止/重启 mihomo
+5.  快速跳转到ui面板
