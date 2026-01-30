@@ -1,6 +1,6 @@
 #!/bin/bash
 # install.sh - Mihomo Tools 一键安装脚本
-# 特性：自动获取最新内核 + 双服务架构
+# 特性：自动获取最新内核 + 双服务架构 + 友好交互提示
 
 MIHOMO_DIR="/etc/mihomo"
 SCRIPT_DIR="${MIHOMO_DIR}/scripts"
@@ -25,7 +25,7 @@ cp -rf "${SCRIPT_ROOT}/scripts/"* "${SCRIPT_DIR}/" && chmod +x "${SCRIPT_DIR}"/*
 cp -rf "${SCRIPT_ROOT}/manager/"* "${MANAGER_DIR}/"
 [ -d "${SCRIPT_ROOT}/templates" ] && cp -rf "${SCRIPT_ROOT}/templates/"* "${MIHOMO_DIR}/templates/"
 
-# === 核心改动：动态获取最新版 ===
+# === 安装核心组件 ===
 echo "⬇️  3. 安装核心组件..."
 
 # 3.1 安装菜单
@@ -66,26 +66,51 @@ fi
 rm -rf "${UI_DIR}/*"
 wget -O /tmp/ui.zip "https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip" >/dev/null 2>&1 && unzip -q -o /tmp/ui.zip -d /tmp/ && cp -r /tmp/zashboard-gh-pages/* "${UI_DIR}/" && rm -rf /tmp/ui*
 
-# === 配置向导 ===
+# === 配置向导 (优化交互提示) ===
 echo "🔑 4. 配置账户..."
 DEFAULT_USER="admin"; DEFAULT_PASS="admin"; DEFAULT_PORT="7838"
+
 if [ -f "${ENV_FILE}" ]; then
+    # 如果已有配置文件，尝试保留
     source "${ENV_FILE}"
-    DEFAULT_USER=${WEB_USER:-admin}; DEFAULT_PASS=${WEB_SECRET:-admin}; DEFAULT_PORT=${WEB_PORT:-7838}
-    read -p "保留现有配置 ($DEFAULT_USER)? (Y/n): " KEEP
-    if [[ "$KEEP" =~ ^[Nn]$ ]]; then
-        read -p "用户: " WEB_USER; read -p "密码: " WEB_SECRET; read -p "端口: " WEB_PORT
-    fi
+    CUR_USER=${WEB_USER:-admin}
+    CUR_PASS=${WEB_SECRET:-admin}
+    CUR_PORT=${WEB_PORT:-7838}
+    
+    echo "检测到现有配置: 用户=$CUR_USER, 端口=$CUR_PORT"
+    read -p "是否保留现有配置？(Y/n) [默认: Y]: " KEEP
+    KEEP=${KEEP:-Y}
 else
-    read -p "用户 [admin]: " WEB_USER; read -p "密码 [admin]: " WEB_SECRET; read -p "端口 [7838]: " WEB_PORT
+    KEEP="n"
 fi
 
+if [[ "$KEEP" =~ ^[Nn]$ ]]; then
+    # === 重新输入配置 ===
+    read -p "请输入面板用户名 [默认: admin]: " IN_USER
+    WEB_USER=${IN_USER:-admin}
+    
+    read -p "请输入面板密码 [默认: admin]: " IN_PASS
+    WEB_SECRET=${IN_PASS:-admin}
+    
+    # 【这里增加了明确的提示】
+    read -p "请输入面板端口 [默认: 7838]: " IN_PORT
+    WEB_PORT=${IN_PORT:-7838}
+else
+    # === 使用旧配置 ===
+    WEB_USER=${WEB_USER:-$DEFAULT_USER}
+    WEB_SECRET=${WEB_SECRET:-$DEFAULT_PASS}
+    WEB_PORT=${WEB_PORT:-$DEFAULT_PORT}
+fi
+
+# 写入配置
 cat > "${ENV_FILE}" <<EOF
-WEB_USER="${WEB_USER:-$DEFAULT_USER}"
-WEB_SECRET="${WEB_SECRET:-$DEFAULT_PASS}"
-WEB_PORT="${WEB_PORT:-$DEFAULT_PORT}"
+WEB_USER="${WEB_USER}"
+WEB_SECRET="${WEB_SECRET}"
+WEB_PORT="${WEB_PORT}"
 SUB_URL=${SUB_URL:-}
-CONFIG_MODE=${CONFIG_MODE:-expert}
+SUB_URL_RAW=${SUB_URL_RAW:-}
+SUB_URL_AIRPORT=${SUB_URL_AIRPORT:-}
+CONFIG_MODE=${CONFIG_MODE:-airport}
 EOF
 
 # === 注册服务 ===
@@ -120,8 +145,13 @@ systemctl daemon-reload
 systemctl enable mihomo-manager mihomo
 systemctl restart mihomo-manager mihomo
 
+# 获取本机 IP 用于提示
+IP=$(hostname -I | awk '{print $1}')
 echo "========================================"
 echo "🎉 安装完成！当前内核: $LATEST_VER"
-echo "Web 面板: http://$(hostname -I | awk '{print $1}'):${WEB_PORT:-$DEFAULT_PORT}"
+echo "Web 面板地址: http://${IP}:${WEB_PORT}"
+echo "用户名: ${WEB_USER}"
+echo "密  码: ${WEB_SECRET}"
+echo "----------------------------------------"
 echo "命令行菜单: 输入 'mihomo' 即可使用"
 echo "========================================"
