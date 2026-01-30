@@ -1,5 +1,5 @@
 #!/bin/bash
-# update_subscription.sh - 订阅更新 (支持 Raw/Airport + 自动防回环注入)
+# update_subscription.sh - 订阅更新 (支持 Raw/Airport + 自动防回环注入 + 优雅通知)
 
 MIHOMO_DIR="/etc/mihomo"
 ENV_FILE="${MIHOMO_DIR}/.env"
@@ -9,7 +9,7 @@ BACKUP_DIR="${MIHOMO_DIR}/backup"
 NOTIFY_SCRIPT="${MIHOMO_DIR}/scripts/notify.sh"
 TEMP_NEW="/tmp/config_generated.yaml"
 
-# 1. 加载环境变量 (获取 LOCAL_CIDR)
+# 1. 加载环境变量
 if [ -f "$ENV_FILE" ]; then source "$ENV_FILE"; fi
 
 mkdir -p "$BACKUP_DIR"
@@ -20,31 +20,31 @@ mkdir -p "${MIHOMO_DIR}/providers"
 # ==========================================
 
 if [ "$CONFIG_MODE" == "raw" ]; then
-    # --- Raw 模式 ---
+    # --- Raw 模式 (配置托管) ---
     if [ -z "$SUB_URL_RAW" ]; then
-        echo "❌ [Raw模式] 未配置订阅链接，跳过。"
+        echo "❌ [配置托管] 未配置订阅链接，跳过。"
         exit 0
     fi
-    echo "⬇️  [Raw模式] 正在下载完整配置..."
+    echo "⬇️  [配置托管] 正在下载完整配置..."
     wget --no-check-certificate -O "$TEMP_NEW" "$SUB_URL_RAW" >/dev/null 2>&1
     
     if [ $? -ne 0 ] || [ ! -s "$TEMP_NEW" ]; then
         echo "❌ 下载失败。"
-        bash "$NOTIFY_SCRIPT" "❌ 更新失败" "无法下载 Raw 配置文件。"
+        bash "$NOTIFY_SCRIPT" "❌ 更新失败" "无法下载托管配置。"
         rm -f "$TEMP_NEW"
         exit 1
     fi
 else
-    # --- Airport 模式 ---
+    # --- Airport 模式 (节点订阅) ---
     if [ ! -f "$TEMPLATE_FILE" ]; then
         echo "❌ 模板文件缺失: $TEMPLATE_FILE"
         exit 1
     fi
     if [ -z "$SUB_URL_AIRPORT" ]; then
-        echo "❌ [Airport模式] 未配置机场链接。"
+        echo "❌ [节点订阅] 未配置机场链接。"
         exit 0
     fi
-    echo "🔨 [Airport模式] 正在生成配置文件..."
+    echo "🔨 [节点订阅] 正在构建配置文件..."
     export SUB_URL_AIRPORT
     
     python3 -c "
@@ -137,7 +137,7 @@ except Exception as e:
 fi
 
 # ==========================================
-# 第三阶段：校验与应用
+# 第三阶段：校验、应用与通知
 # ==========================================
 
 if [ ! -s "$TEMP_NEW" ]; then
@@ -163,7 +163,15 @@ if [ "$FILE_CHANGED" -eq 1 ]; then
     mv "$TEMP_NEW" "$CONFIG_FILE"
     systemctl restart mihomo
     echo "🎉 更新完成并重启。"
-    bash "$NOTIFY_SCRIPT" "♻️ 订阅更新成功" "模式: ${CONFIG_MODE:-airport}"
+    
+    # --- 文案转换逻辑 ---
+    if [ "$CONFIG_MODE" == "raw" ]; then
+        MODE_NAME="配置托管"
+    else
+        MODE_NAME="节点订阅"
+    fi
+    
+    bash "$NOTIFY_SCRIPT" "♻️ 订阅更新成功" "模式: ${MODE_NAME}"
 else
     rm -f "$TEMP_NEW"
 fi
