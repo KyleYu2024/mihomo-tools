@@ -1,5 +1,5 @@
 #!/bin/bash
-# main.sh - Mihomo 命令行管理工具 (v2.2 Pro)
+# main.sh - Mihomo 命令行管理工具 v1.0.1
 # 安装路径: /usr/bin/mihomo
 
 MIHOMO_DIR="/etc/mihomo"
