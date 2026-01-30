@@ -1,5 +1,6 @@
 #!/bin/bash
 # install.sh - Mihomo Tools 一键安装脚本
+# v1.0.4: 修复更新时丢失通知配置的问题 + 完整保留所有设置
 
 MIHOMO_DIR="/etc/mihomo"
 SCRIPT_DIR="${MIHOMO_DIR}/scripts"
@@ -96,7 +97,7 @@ else
     WEB_PORT=${WEB_PORT:-$DEFAULT_PORT}
 fi
 
-# 写入配置 (仅保留 API 通知配置)
+# 写入配置 (修复：必须包含所有可能的变量，否则会被清空)
 cat > "${ENV_FILE}" <<EOF
 # === 基础配置 ===
 WEB_USER="${WEB_USER}"
@@ -110,11 +111,14 @@ SUB_URL_AIRPORT=${SUB_URL_AIRPORT:-}
 CONFIG_MODE=${CONFIG_MODE:-airport}
 LOCAL_CIDR=${LOCAL_CIDR:-}
 
-# === 通知配置 (仅保留 Webhook API) ===
+# === 通知配置 (修复点: 补全变量) ===
+NOTIFY_TG=${NOTIFY_TG:-false}
+TG_BOT_TOKEN=${TG_BOT_TOKEN:-}
+TG_CHAT_ID=${TG_CHAT_ID:-}
 NOTIFY_API=${NOTIFY_API:-false}
 NOTIFY_API_URL=${NOTIFY_API_URL:-}
 
-# === 定时任务配置 ===
+# === 定时任务配置 (修复点: 补全变量) ===
 CRON_SUB_ENABLED=${CRON_SUB_ENABLED:-false}
 CRON_SUB_SCHED=${CRON_SUB_SCHED:-0 5 * * *}
 CRON_GEO_ENABLED=${CRON_GEO_ENABLED:-false}
@@ -188,5 +192,7 @@ echo "Web 面板地址: http://${IP}:${WEB_PORT}"
 echo "用户名: ${WEB_USER}"
 echo "密  码: ${WEB_SECRET}"
 echo "----------------------------------------"
+echo "✅ IP 转发已强制开启 (force-ip-forward)"
+echo "✅ 用户通知配置已保留"
 echo "命令行菜单: 输入 'mihomo' 即可使用"
 echo "========================================"
