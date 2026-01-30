@@ -69,6 +69,7 @@ wget -O /tmp/ui.zip "https://github.com/Zephyruso/zashboard/archive/refs/heads/g
 echo "🔑 4. 配置账户..."
 DEFAULT_USER="admin"; DEFAULT_PASS="admin"; DEFAULT_PORT="7838"
 
+# 预加载现有配置 (如果有)
 if [ -f "${ENV_FILE}" ]; then
     source "${ENV_FILE}"
     CUR_USER=${WEB_USER:-admin}
@@ -76,8 +77,8 @@ if [ -f "${ENV_FILE}" ]; then
     CUR_PORT=${WEB_PORT:-7838}
     
     echo "检测到现有配置: 用户=$CUR_USER, 端口=$CUR_PORT"
-    read -p "是否保留现有配置？(y/n) [默认: y]: " KEEP
-    KEEP=${KEEP:-y}
+    read -p "是否保留现有配置？(Y/n) [默认: Y]: " KEEP
+    KEEP=${KEEP:-Y}
 else
     KEEP="n"
 fi
@@ -95,16 +96,32 @@ else
     WEB_PORT=${WEB_PORT:-$DEFAULT_PORT}
 fi
 
-# 写入配置
+# 写入配置 (修复：必须包含所有可能的变量，否则会被清空)
 cat > "${ENV_FILE}" <<EOF
+# === 基础配置 ===
 WEB_USER="${WEB_USER}"
 WEB_SECRET="${WEB_SECRET}"
 WEB_PORT="${WEB_PORT}"
+
+# === 订阅配置 ===
 SUB_URL=${SUB_URL:-}
 SUB_URL_RAW=${SUB_URL_RAW:-}
 SUB_URL_AIRPORT=${SUB_URL_AIRPORT:-}
 CONFIG_MODE=${CONFIG_MODE:-airport}
 LOCAL_CIDR=${LOCAL_CIDR:-}
+
+# === 通知配置 (修复点: 补全变量) ===
+NOTIFY_TG=${NOTIFY_TG:-false}
+TG_BOT_TOKEN=${TG_BOT_TOKEN:-}
+TG_CHAT_ID=${TG_CHAT_ID:-}
+NOTIFY_API=${NOTIFY_API:-false}
+NOTIFY_API_URL=${NOTIFY_API_URL:-}
+
+# === 定时任务配置 (修复点: 补全变量) ===
+CRON_SUB_ENABLED=${CRON_SUB_ENABLED:-false}
+CRON_SUB_SCHED=${CRON_SUB_SCHED:-0 5 * * *}
+CRON_GEO_ENABLED=${CRON_GEO_ENABLED:-false}
+CRON_GEO_SCHED=${CRON_GEO_SCHED:-0 4 * * *}
 EOF
 
 # === 注册服务 ===
@@ -135,10 +152,10 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
-# === 系统参数调优 (双重保险) ===
+# === 系统参数调优 ===
 echo "🔧 6. 系统网络优化..."
 
-# 6.1 部署强制 IP 转发服务 (解决 LXC/Docker 权限问题)
+# 6.1 部署强制 IP 转发服务
 cat > /etc/systemd/system/force-ip-forward.service <<EOF
 [Unit]
 Description=Force Enable IPv4 Forwarding for Mihomo
@@ -153,7 +170,7 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 EOF
 
-# 6.2 运行常规网关初始化 (设置目录权限/Tun环境)
+# 6.2 运行常规网关初始化
 if [ -f "${SCRIPT_DIR}/gateway_init.sh" ]; then
     echo "正在执行网络环境初始化..."
     bash "${SCRIPT_DIR}/gateway_init.sh"
@@ -174,6 +191,5 @@ echo "Web 面板地址: http://${IP}:${WEB_PORT}"
 echo "用户名: ${WEB_USER}"
 echo "密  码: ${WEB_SECRET}"
 echo "----------------------------------------"
-echo "✅ IP 转发已强制开启 (force-ip-forward)"
 echo "命令行菜单: 输入 'mihomo' 即可使用"
 echo "========================================"
