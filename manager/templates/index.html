@@ -197,10 +197,7 @@
         </a>
     </div>
     
-    <div class="mt-auto text-center p-3 text-muted small">
-        <i class="bi bi-server"></i> 端口: <span id="port-display">--</span>
     </div>
-</div>
 
 <div class="content-area">
     <div class="tab-content">
@@ -584,12 +581,8 @@
             document.getElementById('notify_api').checked = isTrue(res.notify_api);
             document.getElementById('api_url').value = res.api_url;
             
-            // 【修复】加载 Raw 和 Airport，而不是 Expert 和 Template
             cachedUrlRaw = (res.sub_url_raw || '').replace(/\|/g, '\n');
             cachedUrlAirport = (res.sub_url_airport || '').replace(/\|/g, '\n');
-            
-            // 【修复】显示端口
-            if(res.web_port) document.getElementById('port-display').innerText = res.web_port;
             
             const mode = res.config_mode || 'airport';
             if (mode === 'airport') {
@@ -600,7 +593,7 @@
                 document.getElementById('sub_url').value = cachedUrlRaw;
             }
             
-            toggleModeDesc(); // 刷新文案
+            toggleModeDesc(); 
 
             if(document.getElementById('local_cidr')) document.getElementById('local_cidr').value = res.local_cidr || '';
             if(document.getElementById('cron_sub_enabled')) document.getElementById('cron_sub_enabled').checked = isTrue(res.cron_sub_enabled);
@@ -628,7 +621,6 @@
             notify_api: String(document.getElementById('notify_api').checked),
             api_url: document.getElementById('api_url').value,
             
-            // 【修复】发送 Raw 和 Airport
             config_mode: currentMode,
             sub_url_raw: cachedUrlRaw.replace(/\n/g, '|'),
             sub_url_airport: cachedUrlAirport.replace(/\n/g, '|'),
