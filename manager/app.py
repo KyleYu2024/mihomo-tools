@@ -132,7 +132,7 @@ def get_logs():
 def handle_settings():
     if request.method == 'GET':
         e = read_env()
-        # 处理多行 URL 里面的换行符，防止 JSON 报错
+        # 将换行符还原，供前端 Textarea 显示
         sub_url_airport = e.get('SUB_URL_AIRPORT', '').replace('\\n', '\n')
         
         return jsonify({
@@ -141,33 +141,45 @@ def handle_settings():
             # 模式: 'raw' 或 'airport'
             "config_mode": e.get('CONFIG_MODE', 'airport'),
             
-            # 两种 URL 存储
+            # 链接
             "sub_url_raw": e.get('SUB_URL_RAW', ''),
             "sub_url_airport": sub_url_airport,
             
-            # 其他配置
+            # 通知 (全字段返回防 undefined)
             "notify_tg": e.get('NOTIFY_TG') == 'true',
             "tg_token": e.get('TG_BOT_TOKEN', ''),
+            "tg_bot_token": e.get('TG_BOT_TOKEN', ''),
             "tg_id": e.get('TG_CHAT_ID', ''),
+            "tg_chat_id": e.get('TG_CHAT_ID', ''),
             "notify_api": e.get('NOTIFY_API') == 'true',
             "api_url": e.get('NOTIFY_API_URL', ''),
+            "notify_api_url": e.get('NOTIFY_API_URL', ''),
+            
+            # 其他
             "local_cidr": e.get('LOCAL_CIDR', ''),
             "cron_sub_enabled": e.get('CRON_SUB_ENABLED') == 'true',
             "cron_sub_sched": e.get('CRON_SUB_SCHED', '0 5 * * *'), 
+            "cron_sub_schedule": e.get('CRON_SUB_SCHED', '0 5 * * *'),
             "cron_geo_enabled": e.get('CRON_GEO_ENABLED') == 'true',
-            "cron_geo_sched": e.get('CRON_GEO_SCHED', '0 4 * * *')
+            "cron_geo_sched": e.get('CRON_GEO_SCHED', '0 4 * * *'),
+            "cron_geo_schedule": e.get('CRON_GEO_SCHED', '0 4 * * *')
         })
 
     if request.method == 'POST':
         d = request.json
         mode = d.get('config_mode', 'airport')
         
-        # 获取多行 URL，并把换行符转义，方便存入 .env
+        # 处理多行 URL，转义换行符
         raw_airport = d.get('sub_url_airport', '')
-        # 兼容处理: 可能是列表也可能是字符串
-        if isinstance(raw_airport, list):
-            raw_airport = "\n".join(raw_airport)
+        if isinstance(raw_airport, list): raw_airport = "\n".join(raw_airport)
         escaped_airport = raw_airport.replace('\n', '\\n')
+
+        # 兼容 key
+        tg_token = d.get('tg_token') or d.get('tg_bot_token') or ''
+        tg_id = d.get('tg_id') or d.get('tg_chat_id') or ''
+        api_url = d.get('api_url') or d.get('notify_api_url') or ''
+        cron_sub = d.get('cron_sub_sched') or d.get('cron_sub_schedule') or '0 5 * * *'
+        cron_geo = d.get('cron_geo_sched') or d.get('cron_geo_schedule') or '0 4 * * *'
 
         updates = {
             "CONFIG_MODE": mode,
@@ -175,19 +187,19 @@ def handle_settings():
             "SUB_URL_AIRPORT": escaped_airport,
             
             "NOTIFY_TG": str(is_true(d.get('notify_tg'))).lower(),
-            "TG_BOT_TOKEN": d.get('tg_token', ''),
-            "TG_CHAT_ID": d.get('tg_id', ''),
+            "TG_BOT_TOKEN": tg_token,
+            "TG_CHAT_ID": tg_id,
             
             "NOTIFY_API": str(is_true(d.get('notify_api'))).lower(),
-            "NOTIFY_API_URL": d.get('api_url', ''),
+            "NOTIFY_API_URL": api_url,
             
             "LOCAL_CIDR": d.get('local_cidr', ''),
             
             "CRON_SUB_ENABLED": str(is_true(d.get('cron_sub_enabled'))).lower(),
-            "CRON_SUB_SCHED": d.get('cron_sub_sched', '0 5 * * *'),
+            "CRON_SUB_SCHED": cron_sub,
             
             "CRON_GEO_ENABLED": str(is_true(d.get('cron_geo_enabled'))).lower(),
-            "CRON_GEO_SCHED": d.get('cron_geo_sched', '0 4 * * *')
+            "CRON_GEO_SCHED": cron_geo
         }
         
         # 写入 .env
