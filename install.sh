@@ -76,8 +76,8 @@ if [ -f "${ENV_FILE}" ]; then
     CUR_PORT=${WEB_PORT:-7838}
     
     echo "检测到现有配置: 用户=$CUR_USER, 端口=$CUR_PORT"
-    read -p "是否保留现有配置？(Y/n) [默认: Y]: " KEEP
-    KEEP=${KEEP:-Y}
+    read -p "是否保留现有配置？(y/n) [默认: y]: " KEEP
+    KEEP=${KEEP:-y}
 else
     KEEP="n"
 fi
