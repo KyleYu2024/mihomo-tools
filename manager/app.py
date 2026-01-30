@@ -5,21 +5,16 @@ import subprocess
 import os
 
 app = Flask(__name__)
-# 生产环境建议修改此密钥
 app.secret_key = "mihomo-manager-secret"
 app.permanent_session_lifetime = timedelta(days=365)
 
-# === 全局路径配置 ===
 MIHOMO_DIR = "/etc/mihomo"
 SCRIPT_DIR = "/etc/mihomo/scripts"
 ENV_FILE = f"{MIHOMO_DIR}/.env"
 CONFIG_FILE = f"{MIHOMO_DIR}/config.yaml"
 LOG_FILE = "/var/log/mihomo.log"
 
-# === 辅助函数 ===
-
 def run_cmd(cmd):
-    """执行 Shell 命令并返回结果"""
     try:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         return result.returncode == 0, result.stdout + result.stderr
@@ -27,7 +22,6 @@ def run_cmd(cmd):
         return False, str(e)
 
 def read_env():
-    """读取 .env 文件配置"""
     env_data = {}
     if os.path.exists(ENV_FILE):
         try:
@@ -41,14 +35,12 @@ def read_env():
     return env_data
 
 def check_creds(username, password):
-    """验证用户名密码"""
     env = read_env()
     valid_user = os.environ.get('WEB_USER') or env.get('WEB_USER', 'admin')
     valid_pass = os.environ.get('WEB_SECRET') or env.get('WEB_SECRET', 'admin')
     return username == valid_user and password == valid_pass
 
 def update_cron(job_id, schedule, command, enabled):
-    """更新 Crontab 任务"""
     try:
         res = subprocess.run("crontab -l", shell=True, capture_output=True, text=True)
         current_cron = res.stdout.strip().split('\n') if res.stdout else []
@@ -62,10 +54,7 @@ def update_cron(job_id, schedule, command, enabled):
         subprocess.run(f"echo '{cron_str}' | crontab -", shell=True)
     except: pass
 
-def is_true(val):
-    return str(val).lower() == 'true'
-
-# === 路由逻辑 ===
+def is_true(val): return str(val).lower() == 'true'
 
 def login_required(f):
     @wraps(f)
@@ -94,7 +83,6 @@ def index(): return render_template('index.html') if session.get('logged_in') el
 @app.route('/api/status')
 @login_required
 def get_status():
-    # 检查核心服务状态
     return jsonify({"running": subprocess.run("systemctl is-active mihomo", shell=True).returncode == 0})
 
 @app.route('/api/control', methods=['POST'])
@@ -109,7 +97,7 @@ def control_service():
         'update_sub': f'bash {SCRIPT_DIR}/update_subscription.sh',
         'update_geo': f'bash {SCRIPT_DIR}/update_geo.sh',
         'net_init': f'bash {SCRIPT_DIR}/gateway_init.sh',
-        'test_notify': f'bash {SCRIPT_DIR}/notify.sh "测试" "Web端手动测试消息"'
+        'test_notify': f'bash {SCRIPT_DIR}/notify.sh "测试" "Web端测试消息"'
     }
     if action in cmds:
         s, m = run_cmd(cmds[action])
@@ -122,10 +110,9 @@ def handle_config():
     if request.method == 'GET':
         c = ""
         if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE,'r', encoding='utf-8') as f: c = f.read()
+            try: with open(CONFIG_FILE,'r', encoding='utf-8') as f: c = f.read()
             except: pass
-        return jsonify({"content": c, "sub_url": read_env().get('SUB_URL','')})
+        return jsonify({"content": c})
     if request.method == 'POST':
         try:
             with open(CONFIG_FILE,'w', encoding='utf-8') as f: f.write(request.json.get('content'))
@@ -136,7 +123,7 @@ def handle_config():
 @app.route('/api/logs')
 @login_required
 def get_logs():
-    if not os.path.exists(LOG_FILE): return jsonify({"logs": "日志文件未生成，请先启动内核。"})
+    if not os.path.exists(LOG_FILE): return jsonify({"logs": "日志未生成"})
     s, l = run_cmd(f"tail -n 100 {LOG_FILE}")
     return jsonify({"logs": l if l else "暂无日志"})
 
@@ -145,71 +132,65 @@ def get_logs():
 def handle_settings():
     if request.method == 'GET':
         e = read_env()
-        # 【重要修复】返回全量字段，兼容前端可能的不同命名，防止显示 undefined
+        # 处理多行 URL 里面的换行符，防止 JSON 报错
+        sub_url_airport = e.get('SUB_URL_AIRPORT', '').replace('\\n', '\n')
+        
         return jsonify({
             "web_user": e.get('WEB_USER'),
             
-            # 通知配置 (兼容多套变量名)
+            # 模式: 'raw' 或 'airport'
+            "config_mode": e.get('CONFIG_MODE', 'airport'),
+            
+            # 两种 URL 存储
+            "sub_url_raw": e.get('SUB_URL_RAW', ''),
+            "sub_url_airport": sub_url_airport,
+            
+            # 其他配置
             "notify_tg": e.get('NOTIFY_TG') == 'true',
             "tg_token": e.get('TG_BOT_TOKEN', ''),
-            "tg_bot_token": e.get('TG_BOT_TOKEN', ''),
             "tg_id": e.get('TG_CHAT_ID', ''),
-            "tg_chat_id": e.get('TG_CHAT_ID', ''),
-            
             "notify_api": e.get('NOTIFY_API') == 'true',
             "api_url": e.get('NOTIFY_API_URL', ''),
-            "notify_api_url": e.get('NOTIFY_API_URL', ''),
-            
-            # 订阅配置
-            "sub_url_expert": e.get('SUB_URL_EXPERT', ''),
-            "sub_url_template": e.get('SUB_URL_TEMPLATE', ''),
-            "config_mode": e.get('CONFIG_MODE', 'expert'),
             "local_cidr": e.get('LOCAL_CIDR', ''),
-            
-            # 自动化任务
             "cron_sub_enabled": e.get('CRON_SUB_ENABLED') == 'true',
             "cron_sub_sched": e.get('CRON_SUB_SCHED', '0 5 * * *'), 
-            "cron_sub_schedule": e.get('CRON_SUB_SCHED', '0 5 * * *'),
-            
             "cron_geo_enabled": e.get('CRON_GEO_ENABLED') == 'true',
-            "cron_geo_sched": e.get('CRON_GEO_SCHED', '0 4 * * *'),
-            "cron_geo_schedule": e.get('CRON_GEO_SCHED', '0 4 * * *')
+            "cron_geo_sched": e.get('CRON_GEO_SCHED', '0 4 * * *')
         })
 
     if request.method == 'POST':
         d = request.json
-        mode = d.get('config_mode', 'expert')
+        mode = d.get('config_mode', 'airport')
         
-        # 兼容处理前端传来的 key
-        tg_token = d.get('tg_token') or d.get('tg_bot_token') or ''
-        tg_id = d.get('tg_id') or d.get('tg_chat_id') or ''
-        api_url = d.get('api_url') or d.get('notify_api_url') or ''
-        cron_sub = d.get('cron_sub_sched') or d.get('cron_sub_schedule') or '0 5 * * *'
-        cron_geo = d.get('cron_geo_sched') or d.get('cron_geo_schedule') or '0 4 * * *'
+        # 获取多行 URL，并把换行符转义，方便存入 .env
+        raw_airport = d.get('sub_url_airport', '')
+        # 兼容处理: 可能是列表也可能是字符串
+        if isinstance(raw_airport, list):
+            raw_airport = "\n".join(raw_airport)
+        escaped_airport = raw_airport.replace('\n', '\\n')
 
         updates = {
             "CONFIG_MODE": mode,
-            "SUB_URL_EXPERT": d.get('sub_url_expert', ''),
-            "SUB_URL_TEMPLATE": d.get('sub_url_template', ''),
-            "SUB_URL": d.get('sub_url_expert', '') if mode == 'expert' else d.get('sub_url_template', ''),
+            "SUB_URL_RAW": d.get('sub_url_raw', ''),
+            "SUB_URL_AIRPORT": escaped_airport,
             
             "NOTIFY_TG": str(is_true(d.get('notify_tg'))).lower(),
-            "TG_BOT_TOKEN": tg_token,
-            "TG_CHAT_ID": tg_id,
+            "TG_BOT_TOKEN": d.get('tg_token', ''),
+            "TG_CHAT_ID": d.get('tg_id', ''),
             
             "NOTIFY_API": str(is_true(d.get('notify_api'))).lower(),
-            "NOTIFY_API_URL": api_url,
+            "NOTIFY_API_URL": d.get('api_url', ''),
             
             "LOCAL_CIDR": d.get('local_cidr', ''),
             
             "CRON_SUB_ENABLED": str(is_true(d.get('cron_sub_enabled'))).lower(),
-            "CRON_SUB_SCHED": cron_sub,
+            "CRON_SUB_SCHED": d.get('cron_sub_sched', '0 5 * * *'),
             
             "CRON_GEO_ENABLED": str(is_true(d.get('cron_geo_enabled'))).lower(),
-            "CRON_GEO_SCHED": cron_geo
+            "CRON_GEO_SCHED": d.get('cron_geo_sched', '0 4 * * *')
         }
         
-        # 更新 .env 文件
+        # 写入 .env
         lines = []
         if os.path.exists(ENV_FILE):
             with open(ENV_FILE,'r', encoding='utf-8') as f: lines = f.readlines()
@@ -226,11 +207,9 @@ def handle_settings():
             for k,v in updates.items():
                 if k not in keys: f.write(f'{k}="{v}"\n')
         
-        # 更新系统 Crontab
         update_cron("# JOB_SUB", updates['CRON_SUB_SCHED'], f"bash {SCRIPT_DIR}/update_subscription.sh >/dev/null 2>&1", updates['CRON_SUB_ENABLED'] == 'true')
         update_cron("# JOB_GEO", updates['CRON_GEO_SCHED'], f"bash {SCRIPT_DIR}/update_geo.sh >/dev/null 2>&1", updates['CRON_GEO_ENABLED'] == 'true')
         
-        # 【重要修复】返回 message 以便前端弹窗提示
         return jsonify({"success": True, "message": "配置已成功保存！"})
 
 if __name__ == '__main__':
