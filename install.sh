@@ -96,7 +96,7 @@ else
     WEB_PORT=${WEB_PORT:-$DEFAULT_PORT}
 fi
 
-# 写入配置 (修复：必须包含所有可能的变量，否则会被清空)
+# 写入配置 (仅保留 API 通知配置)
 cat > "${ENV_FILE}" <<EOF
 # === 基础配置 ===
 WEB_USER="${WEB_USER}"
@@ -110,14 +110,11 @@ SUB_URL_AIRPORT=${SUB_URL_AIRPORT:-}
 CONFIG_MODE=${CONFIG_MODE:-airport}
 LOCAL_CIDR=${LOCAL_CIDR:-}
 
-# === 通知配置 (修复点: 补全变量) ===
-NOTIFY_TG=${NOTIFY_TG:-false}
-TG_BOT_TOKEN=${TG_BOT_TOKEN:-}
-TG_CHAT_ID=${TG_CHAT_ID:-}
+# === 通知配置 (仅保留 Webhook API) ===
 NOTIFY_API=${NOTIFY_API:-false}
 NOTIFY_API_URL=${NOTIFY_API_URL:-}
 
-# === 定时任务配置 (修复点: 补全变量) ===
+# === 定时任务配置 ===
 CRON_SUB_ENABLED=${CRON_SUB_ENABLED:-false}
 CRON_SUB_SCHED=${CRON_SUB_SCHED:-0 5 * * *}
 CRON_GEO_ENABLED=${CRON_GEO_ENABLED:-false}
