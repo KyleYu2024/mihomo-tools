@@ -196,6 +196,10 @@
             <i class="bi bi-box-arrow-left me-2"></i> 退出登录
         </a>
     </div>
+    
+    <div class="mt-auto text-center p-3 text-muted small">
+        <i class="bi bi-server"></i> 端口: <span id="port-display">--</span>
+    </div>
 </div>
 
 <div class="content-area">
@@ -247,14 +251,14 @@
                     <label class="form-label fw-bold">选择配置模式</label>
                     <div class="d-flex gap-3 mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="configMode" id="mode_expert" value="expert" onchange="toggleModeDesc()">
-                            <label class="form-check-label" for="mode_expert">
+                            <input class="form-check-input" type="radio" name="configMode" id="mode_raw" value="raw" onchange="toggleModeDesc()">
+                            <label class="form-check-label" for="mode_raw">
                                 🔌 完整配置托管 (sub store)
                             </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="configMode" id="mode_template" value="template" onchange="toggleModeDesc()">
-                            <label class="form-check-label" for="mode_template">
+                            <input class="form-check-input" type="radio" name="configMode" id="mode_airport" value="airport" onchange="toggleModeDesc()">
+                            <label class="form-check-label" for="mode_airport">
                                 🏗️ 基础模板生成 (仅需机场订阅)
                             </label>
                         </div>
@@ -490,36 +494,38 @@
     }
 
     // === 双变量独立存储逻辑 ===
-    let cachedUrlExpert = "";
-    let cachedUrlTemplate = "";
+    // 【修复】统一变量名为 Raw 和 Airport
+    let cachedUrlRaw = "";
+    let cachedUrlAirport = "";
 
     function toggleModeDesc() {
-        const isTemplate = document.getElementById('mode_template').checked;
+        // 【修复】ID 已改为 mode_airport
+        const isAirport = document.getElementById('mode_airport').checked;
         const label = document.getElementById('sub_url_label');
         const hint = document.getElementById('sub_url_hint');
         const input = document.getElementById('sub_url');
         
-        if (isTemplate) {
-            // 切换到小白模式
+        if (isAirport) {
+            // 切换到机场模式
             label.innerHTML = "机场订阅链接 (每行一个)";
             input.placeholder = "https://airport1.com/...\nhttps://airport2.com/...";
             hint.innerHTML = "支持多个机场，请每行填一个链接。系统将自动合并节点。";
-            input.value = cachedUrlTemplate; // 恢复小白链接
+            input.value = cachedUrlAirport; 
         } else {
-            // 切换到专家模式
+            // 切换到直连模式
             label.innerHTML = "完整配置文件 URL";
             input.placeholder = "http://... (Sub-Store/Gist)";
             hint.innerHTML = "系统将完整下载并应用该配置文件 (仅注入防回环规则)。";
-            input.value = cachedUrlExpert; // 恢复专家链接
+            input.value = cachedUrlRaw; 
         }
     }
     
     // 监听输入框变化，实时更新缓存
     document.getElementById('sub_url').addEventListener('input', function(e) {
-        if (document.getElementById('mode_template').checked) {
-            cachedUrlTemplate = e.target.value;
+        if (document.getElementById('mode_airport').checked) {
+            cachedUrlAirport = e.target.value;
         } else {
-            cachedUrlExpert = e.target.value;
+            cachedUrlRaw = e.target.value;
         }
     });
 
@@ -578,17 +584,20 @@
             document.getElementById('notify_api').checked = isTrue(res.notify_api);
             document.getElementById('api_url').value = res.api_url;
             
-            // 加载链接缓存 (将 | 替换回换行符)
-            cachedUrlExpert = (res.sub_url_expert || '').replace(/\|/g, '\n');
-            cachedUrlTemplate = (res.sub_url_template || '').replace(/\|/g, '\n');
+            // 【修复】加载 Raw 和 Airport，而不是 Expert 和 Template
+            cachedUrlRaw = (res.sub_url_raw || '').replace(/\|/g, '\n');
+            cachedUrlAirport = (res.sub_url_airport || '').replace(/\|/g, '\n');
             
-            const mode = res.config_mode || 'expert';
-            if (mode === 'template') {
-                document.getElementById('mode_template').checked = true;
-                document.getElementById('sub_url').value = cachedUrlTemplate;
+            // 【修复】显示端口
+            if(res.web_port) document.getElementById('port-display').innerText = res.web_port;
+            
+            const mode = res.config_mode || 'airport';
+            if (mode === 'airport') {
+                document.getElementById('mode_airport').checked = true;
+                document.getElementById('sub_url').value = cachedUrlAirport;
             } else {
-                document.getElementById('mode_expert').checked = true;
-                document.getElementById('sub_url').value = cachedUrlExpert;
+                document.getElementById('mode_raw').checked = true;
+                document.getElementById('sub_url').value = cachedUrlRaw;
             }
             
             toggleModeDesc(); // 刷新文案
@@ -602,14 +611,14 @@
     }
 
     async function saveSettings(silent = false) {
-        let currentMode = 'expert';
-        if (document.getElementById('mode_template').checked) currentMode = 'template';
+        let currentMode = 'raw';
+        if (document.getElementById('mode_airport').checked) currentMode = 'airport';
         
         // 确保当前值已保存到缓存
-        if (currentMode === 'template') {
-            cachedUrlTemplate = document.getElementById('sub_url').value;
+        if (currentMode === 'airport') {
+            cachedUrlAirport = document.getElementById('sub_url').value;
         } else {
-            cachedUrlExpert = document.getElementById('sub_url').value;
+            cachedUrlRaw = document.getElementById('sub_url').value;
         }
 
         const res = await api('/settings', {
@@ -619,10 +628,10 @@
             notify_api: String(document.getElementById('notify_api').checked),
             api_url: document.getElementById('api_url').value,
             
+            // 【修复】发送 Raw 和 Airport
             config_mode: currentMode,
-            // 将换行符转换为 | 保存
-            sub_url_expert: cachedUrlExpert.replace(/\n/g, '|'),
-            sub_url_template: cachedUrlTemplate.replace(/\n/g, '|'),
+            sub_url_raw: cachedUrlRaw.replace(/\n/g, '|'),
+            sub_url_airport: cachedUrlAirport.replace(/\n/g, '|'),
             
             local_cidr: document.getElementById('local_cidr') ? document.getElementById('local_cidr').value : '',
             cron_sub_enabled: document.getElementById('cron_sub_enabled') ? String(document.getElementById('cron_sub_enabled').checked) : 'false',
