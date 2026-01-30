@@ -7,15 +7,21 @@ import os
 app = Flask(__name__)
 
 # === 配置 Session ===
+# 生产环境建议修改此密钥
 app.secret_key = "mihomo-manager-secret-key-permanent"
 app.permanent_session_lifetime = timedelta(days=365)
 
+# === 全局路径定义 ===
 MIHOMO_DIR = "/etc/mihomo"
 SCRIPT_DIR = "/etc/mihomo/scripts"
 ENV_FILE = f"{MIHOMO_DIR}/.env"
 CONFIG_FILE = f"{MIHOMO_DIR}/config.yaml"
+LOG_FILE = "/var/log/mihomo.log"
+
+# === 工具函数 ===
 
 def run_cmd(cmd):
+    """执行 Shell 命令并返回结果"""
     try:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         return result.returncode == 0, result.stdout + result.stderr
@@ -23,6 +29,7 @@ def run_cmd(cmd):
         return False, str(e)
 
 def read_env():
+    """读取 .env 文件配置"""
     env_data = {}
     if os.path.exists(ENV_FILE):
         try:
@@ -32,12 +39,14 @@ def read_env():
                     if '=' in line and not line.startswith('#'):
                         parts = line.split('=', 1)
                         if len(parts) == 2:
+                            # 去除引号和空格
                             env_data[parts[0].strip()] = parts[1].strip().strip('"').strip("'")
         except:
             pass
     return env_data
 
 def update_cron(job_id, schedule, command, enabled):
+    """管理 Crontab 定时任务"""
     try:
         res = subprocess.run("crontab -l", shell=True, capture_output=True, text=True)
         current_cron = res.stdout.strip().split('\n') if res.stdout else []
@@ -53,15 +62,18 @@ def update_cron(job_id, schedule, command, enabled):
         print(f"Cron Error: {e}")
 
 def is_true(val):
+    """辅助判断布尔值"""
     return str(val).lower() == 'true'
 
 def check_creds(username, password):
+    """验证用户名密码"""
     file_env = read_env()
+    # 优先读取环境变量，其次读取文件，默认 admin
     valid_user = os.environ.get('WEB_USER') or file_env.get('WEB_USER', 'admin')
     valid_pass = os.environ.get('WEB_SECRET') or file_env.get('WEB_SECRET', 'admin')
     return username == valid_user and password == valid_pass
 
-# 鉴权装饰器
+# === 鉴权装饰器 ===
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -72,7 +84,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# --- 路由 ---
+# === 路由定义 ===
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -103,6 +115,7 @@ def index():
 @app.route('/api/status')
 @login_required
 def get_status():
+    # 检查 mihomo 内核服务状态
     service_active = subprocess.run("systemctl is-active mihomo", shell=True).returncode == 0
     return jsonify({"running": service_active})
 
@@ -110,6 +123,7 @@ def get_status():
 @login_required
 def control_service():
     action = request.json.get('action')
+    # 指令映射
     cmds = {
         'start': 'systemctl start mihomo',
         'stop': 'systemctl stop mihomo',
@@ -117,7 +131,7 @@ def control_service():
         'update_geo': f'bash {SCRIPT_DIR}/update_geo.sh',
         'update_sub': f'bash {SCRIPT_DIR}/update_subscription.sh',
         'net_init': f'bash {SCRIPT_DIR}/gateway_init.sh',
-        'fix_logs': 'systemctl restart mihomo',
+        'fix_logs': 'systemctl restart mihomo', # 实际上重启服务即可刷新日志
         'test_notify': f'bash {SCRIPT_DIR}/notify.sh "🔔 通知测试" "恭喜！如果你收到这条消息，说明通知配置正确。"'
     }
     if action in cmds:
@@ -136,13 +150,15 @@ def handle_config():
                     content = f.read()
             except: pass
         env = read_env()
-        # 返回当前生效的 SUB_URL 给前端做参考（实际编辑以 settings 为准）
         return jsonify({"content": content, "sub_url": env.get('SUB_URL', '')})
+    
     if request.method == 'POST':
         content = request.json.get('content')
         try:
             with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
                 f.write(content)
+            # 保存配置后通常不需要重启，除非修改了监听端口等核心配置
+            # 但为了生效订阅更改，通常用户会手动点击重启
             return jsonify({"success": True, "message": "配置已保存"})
         except Exception as e:
             return jsonify({"success": False, "message": str(e)})
@@ -160,7 +176,7 @@ def handle_settings():
             "notify_api": env.get('NOTIFY_API') == 'true',
             "api_url": env.get('NOTIFY_API_URL', ''),
             
-            # 【双模式独立存储】
+            # 双模式相关
             "config_mode": env.get('CONFIG_MODE', 'expert'),
             "sub_url_expert": env.get('SUB_URL_EXPERT', ''),
             "sub_url_template": env.get('SUB_URL_TEMPLATE', ''),
@@ -175,13 +191,12 @@ def handle_settings():
     if request.method == 'POST':
         d = request.json
         
-        # 获取前端传来的分别存储的 URL 和模式
+        # 处理双模式逻辑
         mode = d.get('config_mode', 'expert')
         url_expert = d.get('sub_url_expert', '')
         url_template = d.get('sub_url_template', '')
         
-        # 【核心逻辑】根据模式，计算出当前生效的 SUB_URL
-        # 脚本 update_subscription.sh 只认 SUB_URL
+        # 决定生效的 SUB_URL
         active_url = url_expert if mode == 'expert' else url_template
 
         updates = {
@@ -191,11 +206,10 @@ def handle_settings():
             "NOTIFY_API": str(is_true(d.get('notify_api'))).lower(),
             "NOTIFY_API_URL": d.get('api_url', ''),
             
-            # 【保存独立变量】
             "CONFIG_MODE": mode,
             "SUB_URL_EXPERT": url_expert,
             "SUB_URL_TEMPLATE": url_template,
-            "SUB_URL": active_url,  # <--- 自动更新这个变量，给 Shell 脚本用
+            "SUB_URL": active_url,  # 这里的更新对 backend 脚本至关重要
             
             "LOCAL_CIDR": d.get('local_cidr', ''),
             "CRON_SUB_ENABLED": str(is_true(d.get('cron_sub_enabled'))).lower(),
@@ -204,16 +218,19 @@ def handle_settings():
             "CRON_GEO_SCHED": d.get('cron_geo_sched', '0 4 * * *')
         }
         
-        # 更新 .env 文件
+        # 更新 .env 文件 (只更新变动或新增的 key)
         lines = []
         if os.path.exists(ENV_FILE):
             with open(ENV_FILE, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
+        
         new_lines = []
         updated_keys = set()
+        
         for line in lines:
-            if '=' in line and not line.strip().startswith('#'):
-                key = line.split('=')[0].strip()
+            line_stripped = line.strip()
+            if '=' in line_stripped and not line_stripped.startswith('#'):
+                key = line_stripped.split('=')[0].strip()
                 if key in updates:
                     new_lines.append(f'{key}="{updates[key]}"\n')
                     updated_keys.add(key)
@@ -221,12 +238,16 @@ def handle_settings():
                     new_lines.append(line)
             else:
                 new_lines.append(line)
+        
+        # 追加新 key
         for k, v in updates.items():
             if k not in updated_keys:
                 new_lines.append(f'{k}="{v}"\n')
+        
         with open(ENV_FILE, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
 
+        # 更新 Crontab
         update_cron("# JOB_SUB", updates['CRON_SUB_SCHED'], f"bash {SCRIPT_DIR}/update_subscription.sh >/dev/null 2>&1", updates['CRON_SUB_ENABLED'] == 'true')
         update_cron("# JOB_GEO", updates['CRON_GEO_SCHED'], f"bash {SCRIPT_DIR}/update_geo.sh >/dev/null 2>&1", updates['CRON_GEO_ENABLED'] == 'true')
 
@@ -235,14 +256,22 @@ def handle_settings():
 @app.route('/api/logs')
 @login_required
 def get_logs():
-    LOG_FILE = "/var/log/mihomo.log"
     if not os.path.exists(LOG_FILE):
-        return jsonify({"logs": "⚠️ 日志文件尚未生成..."})
+        return jsonify({"logs": "⚠️ 日志文件尚未生成，请确保 Mihomo 内核已启动..."})
     try:
+        # 读取最后 100 行
         success, logs = run_cmd(f"tail -n 100 {LOG_FILE}")
         return jsonify({"logs": logs if logs else "日志为空"})
     except:
         return jsonify({"logs": "读取失败"})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=7838)
+    # 动态读取端口配置，默认为 7838
+    env = read_env()
+    try:
+        port = int(env.get('WEB_PORT', 7838))
+    except ValueError:
+        port = 7838
+    
+    # 启动 Flask
+    app.run(host='0.0.0.0', port=port)
