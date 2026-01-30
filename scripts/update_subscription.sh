@@ -167,3 +167,14 @@ if [ "$FILE_CHANGED" -eq 1 ]; then
 else
     rm -f "$TEMP_NEW"
 fi
+if [ "$CONFIG_MODE" == "raw" ]; then
+        MODE_NAME="配置托管"
+    else
+        MODE_NAME="机场订阅"
+    fi
+    
+    bash "$NOTIFY_SCRIPT" "♻️ 订阅更新成功" "模式: ${MODE_NAME}"
+    # === 修改结束 ===
+else
+    rm -f "$TEMP_NEW"
+fi
