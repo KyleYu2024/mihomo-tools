@@ -1,74 +1,155 @@
 #!/bin/bash
-# update_subscription.sh - 智能订阅更新 (仅变更时通知)
+# update_subscription.sh - 订阅更新 (支持 Raw 直连 和 Airport 模板注入)
 
 MIHOMO_DIR="/etc/mihomo"
 ENV_FILE="${MIHOMO_DIR}/.env"
 CONFIG_FILE="${MIHOMO_DIR}/config.yaml"
+TEMPLATE_FILE="${MIHOMO_DIR}/templates/default.yaml"
 BACKUP_DIR="${MIHOMO_DIR}/backup"
 NOTIFY_SCRIPT="${MIHOMO_DIR}/scripts/notify.sh"
-TEMP_FILE="/tmp/config_new.yaml"
+TEMP_NEW="/tmp/config_generated.yaml"
 
 # 1. 加载环境变量
 if [ -f "$ENV_FILE" ]; then source "$ENV_FILE"; fi
 
-# 2. 检查订阅链接
-if [ -z "$SUB_URL" ]; then
-    echo "❌ 未配置订阅链接 (SUB_URL)，跳过更新。"
-    exit 0
-fi
-
 mkdir -p "$BACKUP_DIR"
+mkdir -p "${MIHOMO_DIR}/providers" # 确保 provider 目录存在
 
-# 3. 下载新配置
-echo "⬇️  正在下载订阅: $SUB_URL"
-wget --no-check-certificate -O "$TEMP_FILE" "$SUB_URL" >/dev/null 2>&1
+# --------------------------------------------------------
+# 模式 A: Raw 直连模式 (拉取完整配置)
+# --------------------------------------------------------
+if [ "$CONFIG_MODE" == "raw" ]; then
+    if [ -z "$SUB_URL_RAW" ]; then
+        echo "❌ [Raw模式] 未配置订阅链接，跳过。"
+        exit 0
+    fi
+    
+    echo "⬇️  [Raw模式] 正在下载完整配置..."
+    wget --no-check-certificate -O "$TEMP_NEW" "$SUB_URL_RAW" >/dev/null 2>&1
+    
+    if [ $? -ne 0 ] || [ ! -s "$TEMP_NEW" ]; then
+        echo "❌ 下载失败。"
+        bash "$NOTIFY_SCRIPT" "❌ 更新失败" "无法下载 Raw 配置文件。"
+        rm -f "$TEMP_NEW"
+        exit 1
+    fi
 
-if [ $? -ne 0 ]; then
-    echo "❌ 下载失败，请检查网络或链接。"
-    # 下载失败通常建议保留通知，或者您也可以注释掉下面这行
-    bash "$NOTIFY_SCRIPT" "❌ 订阅更新失败" "无法连接到订阅服务器，请检查网络。"
-    rm -f "$TEMP_FILE"
+# --------------------------------------------------------
+# 模式 B: Airport 机场模式 (注入模板)
+# --------------------------------------------------------
+else
+    # 默认 fallback 到 airport 模式
+    if [ ! -f "$TEMPLATE_FILE" ]; then
+        echo "❌ 模板文件缺失: $TEMPLATE_FILE"
+        exit 1
+    fi
+    
+    # 将 .env 里的转义换行符还原，处理多行 URL
+    # 如果 SUB_URL_AIRPORT 为空，提示
+    if [ -z "$SUB_URL_AIRPORT" ]; then
+        echo "❌ [Airport模式] 未配置机场链接。"
+        exit 0
+    fi
+    
+    echo "🔨 [Airport模式] 正在生成配置文件..."
+    
+    # 使用 Python 动态注入 Proxy Providers
+    python3 -c "
+import sys, yaml, os
+
+template_path = '$TEMPLATE_FILE'
+output_path = '$TEMP_NEW'
+# 从环境变量读取，并还原换行符
+urls_raw = os.environ.get('SUB_URL_AIRPORT', '').replace('\\\\n', '\\n')
+
+def load_yaml(path):
+    if not os.path.exists(path): return {}
+    with open(path, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f) or {}
+
+try:
+    # 1. 加载模板
+    config = load_yaml(template_path)
+    
+    # 2. 解析 URL 列表 (按行分割，忽略空行)
+    url_list = [line.strip() for line in urls_raw.split('\n') if line.strip()]
+    
+    if not url_list:
+        print('Error: No valid URLs found')
+        sys.exit(1)
+
+    # 3. 动态生成 proxy-providers
+    # 模板里可能有默认的 provider，先清空或覆盖
+    providers = {}
+    
+    for index, url in enumerate(url_list):
+        # 生成 provider 名称: Airport_01, Airport_02...
+        name = f'Airport_{index+1:02d}'
+        providers[name] = {
+            'type': 'http',
+            'url': url,
+            'interval': 86400,
+            'path': f'./providers/airport_{index+1:02d}.yaml',
+            'health-check': {
+                'enable': True,
+                'interval': 600,
+                'url': 'https://www.gstatic.com/generate_204'
+            }
+        }
+    
+    # 注入到配置对象中
+    config['proxy-providers'] = providers
+    
+    # 4. 写入新文件
+    with open(output_path, 'w', encoding='utf-8') as f:
+        yaml.dump(config, f, allow_unicode=True, sort_keys=False)
+
+except Exception as e:
+    print(f'Error: {e}')
+    sys.exit(1)
+"
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ 生成配置失败。"
+        bash "$NOTIFY_SCRIPT" "❌ 生成失败" "YAML 处理错误，请检查模板。"
+        rm -f "$TEMP_NEW"
+        exit 1
+    fi
+fi
+
+# --------------------------------------------------------
+# 通用步骤: 校验与应用
+# --------------------------------------------------------
+
+# 简单校验
+if [ ! -s "$TEMP_NEW" ]; then
+    echo "❌ 生成的文件为空。"
+    rm -f "$TEMP_NEW"
     exit 1
 fi
 
-# 4. 简单校验 (防止下载到空文件或报错页面)
-if [ ! -s "$TEMP_FILE" ] || ! grep -qE "port:|mixed-port:|proxies:" "$TEMP_FILE"; then
-    echo "❌ 下载的文件格式不正确，跳过更新。"
-    rm -f "$TEMP_FILE"
-    exit 1
-fi
-
-# 5. 【核心逻辑】比对文件差异
+# 比对差异
 FILE_CHANGED=0
 if [ -f "$CONFIG_FILE" ]; then
-    # 使用 cmp 比较文件内容，-s 表示静默模式
-    if cmp -s "$TEMP_FILE" "$CONFIG_FILE"; then
-        echo "✅ 配置未发生变更，跳过更新。"
-        FILE_CHANGED=0
+    if cmp -s "$TEMP_NEW" "$CONFIG_FILE"; then
+        echo "✅ 配置无变更。"
     else
-        echo "⚠️  检测到配置变更，准备覆盖..."
+        echo "⚠️  配置有变更。"
         FILE_CHANGED=1
     fi
 else
-    echo "⚠️  配置文件不存在，准备初始化..."
     FILE_CHANGED=1
 fi
 
-# 6. 执行更新 (仅在有变更时)
+# 应用更新
 if [ "$FILE_CHANGED" -eq 1 ]; then
-    # 备份旧文件
     cp "$CONFIG_FILE" "${BACKUP_DIR}/config_$(date +%Y%m%d%H%M).yaml" 2>/dev/null
-    
-    # 覆盖新文件
-    mv "$TEMP_FILE" "$CONFIG_FILE"
-    
-    # 重启服务
+    mv "$TEMP_NEW" "$CONFIG_FILE"
     systemctl restart mihomo
     
-    # ✅ 发送通知 (仅变更时)
-    echo "🎉 订阅已更新并重启服务。"
-    bash "$NOTIFY_SCRIPT" "♻️ 订阅已更新" "检测到配置变更，Mihomo 已自动重启加载新配置。"
+    echo "🎉 更新完成并重启。"
+    # 这里的通知会由 cron 触发，或者手动触发
+    bash "$NOTIFY_SCRIPT" "♻️ 订阅更新成功" "模式: ${CONFIG_MODE:-airport}"
 else
-    # ❌ 无变更，清理临时文件，不发通知
-    rm -f "$TEMP_FILE"
+    rm -f "$TEMP_NEW"
 fi
