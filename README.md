@@ -53,6 +53,8 @@ git clone https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && ba
 
 ```
 ##  🖥 WEB UI配置  ##
+<img width="2938" height="1194" alt="image" src="https://github.com/user-attachments/assets/d9ba0ff3-e1ac-4a7a-bfd5-c5ecbd3e37ee" />
+
 1.  http://ip:7838  进入web ui
 2.  可配置修改config.yaml
 3.  配置webhook通知
@@ -60,4 +62,6 @@ git clone https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && ba
 5.  快速跳转到ui面板
 
 ##  ⚙️ 高级设置  ##
+<img width="824" height="636" alt="image" src="https://github.com/user-attachments/assets/a070fca0-becb-4016-b0e5-f7a63ee026e8" />
+
 在终端用mihomo命令管理页面，可进行内核更新，程序卸载等高级操作
