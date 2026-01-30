@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh - Mihomo 一键安装脚本 (全量修复版)
+# install.sh - Mihomo 一键安装脚本
 
 MIHOMO_DIR="/etc/mihomo"
 SCRIPT_DIR="${MIHOMO_DIR}/scripts"
