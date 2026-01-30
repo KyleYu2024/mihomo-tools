@@ -38,7 +38,6 @@
             --log-bg: #000;
         }
         
-        /* === 核心修复：深色模式可见性优化 === */
         [data-theme="dark"] .form-control::placeholder {
             color: #adb5bd !important;
             opacity: 1;
@@ -241,25 +240,43 @@
         <div class="tab-pane fade" id="tab-tasks">
             <div class="card border-primary border-1" style="border-left-width: 4px;">
                 <div class="card-header text-primary">
-                    <i class="bi bi-link-45deg"></i> 订阅管理
+                    <i class="bi bi-link-45deg"></i> 订阅配置
                 </div>
                 <div class="card-body">
-                    <label class="form-label fw-bold">完整配置文件订阅链接</label>
+                    
+                    <label class="form-label fw-bold">选择配置模式</label>
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="configMode" id="mode_expert" value="expert" onchange="toggleModeDesc()">
+                            <label class="form-check-label" for="mode_expert">
+                                🔌 完整配置托管 (专家)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="configMode" id="mode_template" value="template" onchange="toggleModeDesc()">
+                            <label class="form-check-label" for="mode_template">
+                                🏗️ 基础模板生成 (小白)
+                            </label>
+                        </div>
+                    </div>
+
+                    <label class="form-label fw-bold" id="sub_url_label">订阅链接 URL</label>
                     <div class="input-group mb-2">
                         <span class="input-group-text"><i class="bi bi-globe"></i></span>
-                        <input type="text" class="form-control" id="sub_url" placeholder="http://...">
+                        <textarea class="form-control" id="sub_url" rows="3" placeholder="http://..."></textarea>
                     </div>
+                    <div class="form-text mb-3" id="sub_url_hint">请填入 Sub-Store 或完整配置文件的链接。</div>
                     
-                    <label class="form-label fw-bold text-success mt-2">本地直连网段 (防回家规则导致回环)</label>
+                    <label class="form-label fw-bold text-success">本地直连网段 (防回环)</label>
                     <div class="input-group mb-2">
                         <span class="input-group-text"><i class="bi bi-diagram-2"></i></span>
-                        <input type="text" class="form-control" id="local_cidr" placeholder="例如: 192.168.1.0/24 (留空则不启用)">
+                        <input type="text" class="form-control" id="local_cidr" placeholder="例如: 10.10.1.0/24 (留空则不启用)">
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <small class="text-muted">自动保留面板配置</small>
+                        <small class="text-muted">保存后需点击应用</small>
                         <button class="btn btn-primary" onclick="saveAndUpdateSub()">
-                            <i class="bi bi-cloud-download"></i> 保存并更新
+                            <i class="bi bi-cloud-download"></i> 保存并应用配置
                         </button>
                     </div>
                 </div>
@@ -472,6 +489,40 @@
         }
     }
 
+    // === 双变量独立存储逻辑 ===
+    let cachedUrlExpert = "";
+    let cachedUrlTemplate = "";
+
+    function toggleModeDesc() {
+        const isTemplate = document.getElementById('mode_template').checked;
+        const label = document.getElementById('sub_url_label');
+        const hint = document.getElementById('sub_url_hint');
+        const input = document.getElementById('sub_url');
+        
+        if (isTemplate) {
+            // 切换到小白模式
+            label.innerHTML = "机场订阅链接 (每行一个)";
+            input.placeholder = "https://airport1.com/...\nhttps://airport2.com/...";
+            hint.innerHTML = "支持多个机场，请每行填一个链接。系统将自动合并节点。";
+            input.value = cachedUrlTemplate; // 恢复小白链接
+        } else {
+            // 切换到专家模式
+            label.innerHTML = "完整配置文件 URL";
+            input.placeholder = "http://... (Sub-Store/Gist)";
+            hint.innerHTML = "系统将完整下载并应用该配置文件 (仅注入防回环规则)。";
+            input.value = cachedUrlExpert; // 恢复专家链接
+        }
+    }
+    
+    // 监听输入框变化，实时更新缓存
+    document.getElementById('sub_url').addEventListener('input', function(e) {
+        if (document.getElementById('mode_template').checked) {
+            cachedUrlTemplate = e.target.value;
+        } else {
+            cachedUrlExpert = e.target.value;
+        }
+    });
+
     async function api(path, data) {
         const opts = data ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) } : {};
         const resp = await fetch('/api'+path, opts);
@@ -507,11 +558,10 @@
     }
 
     function saveAndUpdateSub() {
-        const url = document.getElementById('sub_url').value;
-        if(!url) return alert("请先填写订阅链接！");
-        if(!confirm("确定要保存链接并覆盖当前配置文件吗？")) return;
+        if(!document.getElementById('sub_url').value) return alert("请先填写订阅链接！");
+        if(!confirm("确定要保存并应用配置吗？此操作将覆盖当前配置。")) return;
         saveSettings(true).then(() => {
-            alert("正在下载订阅...完成后编辑器会自动刷新。");
+            alert("正在处理订阅与配置...完成后编辑器会自动刷新。");
             api('/control', {action: 'update_sub'}).then(res => {
                 alert(res.message);
                 if(res.success) loadConfig();
@@ -527,11 +577,23 @@
             document.getElementById('tg_id').value = res.tg_id;
             document.getElementById('notify_api').checked = isTrue(res.notify_api);
             document.getElementById('api_url').value = res.api_url;
-            if(document.getElementById('sub_url')) document.getElementById('sub_url').value = res.sub_url; 
             
-            // 【修改点】加载本地网段配置
+            // 加载链接缓存 (将 | 替换回换行符)
+            cachedUrlExpert = (res.sub_url_expert || '').replace(/\|/g, '\n');
+            cachedUrlTemplate = (res.sub_url_template || '').replace(/\|/g, '\n');
+            
+            const mode = res.config_mode || 'expert';
+            if (mode === 'template') {
+                document.getElementById('mode_template').checked = true;
+                document.getElementById('sub_url').value = cachedUrlTemplate;
+            } else {
+                document.getElementById('mode_expert').checked = true;
+                document.getElementById('sub_url').value = cachedUrlExpert;
+            }
+            
+            toggleModeDesc(); // 刷新文案
+
             if(document.getElementById('local_cidr')) document.getElementById('local_cidr').value = res.local_cidr || '';
-            
             if(document.getElementById('cron_sub_enabled')) document.getElementById('cron_sub_enabled').checked = isTrue(res.cron_sub_enabled);
             if(document.getElementById('cron_sub_sched')) document.getElementById('cron_sub_sched').value = res.cron_sub_sched;
             if(document.getElementById('cron_geo_enabled')) document.getElementById('cron_geo_enabled').checked = isTrue(res.cron_geo_enabled);
@@ -540,17 +602,29 @@
     }
 
     async function saveSettings(silent = false) {
+        let currentMode = 'expert';
+        if (document.getElementById('mode_template').checked) currentMode = 'template';
+        
+        // 确保当前值已保存到缓存
+        if (currentMode === 'template') {
+            cachedUrlTemplate = document.getElementById('sub_url').value;
+        } else {
+            cachedUrlExpert = document.getElementById('sub_url').value;
+        }
+
         const res = await api('/settings', {
             notify_tg: String(document.getElementById('notify_tg').checked),
             tg_token: document.getElementById('tg_token').value,
             tg_id: document.getElementById('tg_id').value,
             notify_api: String(document.getElementById('notify_api').checked),
             api_url: document.getElementById('api_url').value,
-            sub_url: document.getElementById('sub_url') ? document.getElementById('sub_url').value : '',
             
-            // 【修改点】保存本地网段配置
+            config_mode: currentMode,
+            // 将换行符转换为 | 保存
+            sub_url_expert: cachedUrlExpert.replace(/\n/g, '|'),
+            sub_url_template: cachedUrlTemplate.replace(/\n/g, '|'),
+            
             local_cidr: document.getElementById('local_cidr') ? document.getElementById('local_cidr').value : '',
-
             cron_sub_enabled: document.getElementById('cron_sub_enabled') ? String(document.getElementById('cron_sub_enabled').checked) : 'false',
             cron_sub_sched: document.getElementById('cron_sub_sched') ? document.getElementById('cron_sub_sched').value : '',
             cron_geo_enabled: document.getElementById('cron_geo_enabled') ? String(document.getElementById('cron_geo_enabled').checked) : 'false',
