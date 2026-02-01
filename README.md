@@ -74,5 +74,5 @@ git clone https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && ba
 在终端用mihomo命令管理页面，可进行内核更新，程序卸载等高级操作
 
 ##  📢 通知设置  ##
-1.  推荐一下开源项目https://github.com/jianxcao/notify
+1.  推荐以下开源项目https://github.com/jianxcao/notify
 2.  配置好默认模版（title和content不要修改），直接复制配接口地址即可
