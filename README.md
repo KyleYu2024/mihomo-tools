@@ -72,3 +72,7 @@ git clone https://github.com/KyleYu2024/mihomo-tools.git /etc/mihomo-tools && ba
 <img width="824" height="636" alt="image" src="https://github.com/user-attachments/assets/a070fca0-becb-4016-b0e5-f7a63ee026e8" />
 
 在终端用mihomo命令管理页面，可进行内核更新，程序卸载等高级操作
+
+##  📢 通知设置  ##
+1.  推荐一下开源项目https://github.com/jianxcao/notify
+2.  配置好默认模版（title和content不要修改），直接复制配接口地址即可
