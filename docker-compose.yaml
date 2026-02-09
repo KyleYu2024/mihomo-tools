@@ -9,11 +9,11 @@ services:
       - ./data:/etc/mihomo          
       - /lib/modules:/lib/modules:ro # TUN 模式可能需要内核模块
     environment:
-      TUN_ENABLED: "false"          # 是否开启 TUN 模式（true / false）
-      DNS_PORT: "1053"              # dsn监听端口，在tun模式开启的情况下，除了macvlan模式，不要用53
-      WEB_USER: admin               # Web 管理面板用户名
-      WEB_SECRET: admin             # Web 管理面板密码
-      WEB_PORT: "7838"              # Web 管理面板端口
+      - TUN_ENABLED=false          # 是否开启 TUN 模式（true / false）
+      - DNS_PORT=1053              # dsn监听端口，在tun模式开启的情况下，除了macvlan模式，不要用53
+      - WEB_USER=admin             # Web 管理面板用户名
+      - WEB_SECRET=password        # Web 管理面板密码
+      - WEB_PORT=7838              # Web 管理面板端口
       
       # 可选环境变量示例
       # SUB_URL_RAW: "你的订阅链接"
