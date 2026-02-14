@@ -439,8 +439,8 @@
             lines.forEach(line => {
                 // 1. 尝试匹配 Mihomo 标准日志格式
                 const mihomoMatch = line.match(/time="([^"]+)" level=([^ ]+) msg="([^"]+)"/);
-                // 2. 尝试匹配 Systemd 标准日志格式 (如: Feb 14 07:00:02 test bash[2238]: ...)
-                const systemdMatch = line.match(/^(\w{3} +\d+ \d+:\d+:\d+) (\S+) (.*?): (.*)$/);
+                // 2. 尝试匹配 Systemd 标准日志格式 (增强兼容性: 支持 2月/Feb, 支持有无日期)
+                const systemdMatch = line.match(/^(.*?) (\S+) ([\w\/\.\-\[\]]+): (.*)$/);
 
                 if (mihomoMatch) {
                     let time = mihomoMatch[1].replace('T', ' ').split('.')[0];
@@ -451,13 +451,14 @@
                     if(level === 'ERROR' || level === 'FATAL') badgeClass = 'tag-error';
                     if(level === 'DEBUG') badgeClass = 'tag-debug';
                     html += `<div class="log-entry"><span class="log-tag ${badgeClass}">${level}</span><span class="log-time">${time}</span><span class="log-msg">${msg}</span></div>`;
-                } else if (systemdMatch) {
+                } else if (systemdMatch && systemdMatch[4]) {
                     let time = systemdMatch[1];
                     let proc = systemdMatch[3];
                     let msg = systemdMatch[4];
                     html += `<div class="log-entry"><span class="log-tag tag-debug">SYSTEM</span><span class="log-time">${time}</span><span class="log-msg"><b class="text-info">${proc}:</b> ${msg}</span></div>`;
                 } else {
-                    html += `<div class="log-entry"><span class="log-msg" style="color: var(--text-main); opacity: 0.8;">${line}</span></div>`;
+                    // 兜底显示，确保颜色在深色背景下可见
+                    html += `<div class="log-entry"><span class="log-msg" style="color: #dcdcdc !important;">${line}</span></div>`;
                 }
             });
             if (logContainer.innerHTML !== html) {
