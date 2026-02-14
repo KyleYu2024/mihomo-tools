@@ -13,6 +13,15 @@ export TUN_ENABLED="${TUN_ENABLED:-true}"
 export DNS_HIJACK_ENABLED="${DNS_HIJACK_ENABLED:-true}"
 export LOCAL_CIDR="${LOCAL_CIDR}"
 
+# 如果环境变量中没有物理网卡信息，尝试现场探测
+if [ -z "$PHYSICAL_IFACE" ]; then
+    PHYSICAL_IFACE=$(ip route get 223.5.5.5 2>/dev/null | awk '/dev/ {print $5; exit}')
+    if [ -z "$PHYSICAL_IFACE" ]; then
+        PHYSICAL_IFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5}' | head -n 1)
+    fi
+fi
+export PHYSICAL_IFACE="${PHYSICAL_IFACE}"
+
 python3 -c "
 import sys, yaml, os
 
@@ -20,6 +29,7 @@ config_path = '$TARGET_FILE'
 tun_enabled = os.environ.get('TUN_ENABLED', 'true').lower() == 'true'
 dns_hijack_enabled = os.environ.get('DNS_HIJACK_ENABLED', 'true').lower() == 'true'
 local_cidr = os.environ.get('LOCAL_CIDR', '').strip()
+physical_iface = os.environ.get('PHYSICAL_IFACE', '').strip()
 
 def load_yaml(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -36,6 +46,17 @@ try:
     if 'tun' not in config or not isinstance(config['tun'], dict):
         config['tun'] = {}
     config['tun']['enable'] = tun_enabled
+    
+    # 【关键修复】显式指定物理网卡，避免 auto-detect 报错
+    if physical_iface:
+        config['tun']['device'] = 'mihomo-tun' # 固定 TUN 设备名
+        config['tun']['auto-detect-interface'] = False # 关闭自动检测
+        config['interface-name'] = physical_iface # 绑定物理出口
+        print(f'✅ 已绑定物理网卡: {physical_iface}')
+    else:
+        # 如果没探测到，保持原样或默认开启自动
+        config['tun']['auto-detect-interface'] = True
+
     if dns_hijack_enabled:
         config['tun']['dns-hijack'] = ['any:53', 'tcp://any:53']
     else:

@@ -25,11 +25,40 @@ log() {
     fi
 }
 
-# 2. 自动识别网卡
-IFACE=$(ip route show default | awk '/default/ {print $5}' | head -n 1)
-if [ -z "$IFACE" ]; then
-    IFACE="eth0" # 兜底
+# 2. 自动识别网卡 (增强版自适应)
+# --------------------------------------
+# 优先检测默认路由出口，这通常是通往互联网的物理网卡
+detect_interface() {
+    # 方法1: 通过 ip route get 探测 (最准确)
+    local iface=$(ip route get 223.5.5.5 2>/dev/null | awk '/dev/ {print $5; exit}')
+    
+    # 方法2: 如果方法1失败，尝试获取默认路由网卡
+    if [ -z "$iface" ]; then
+        iface=$(ip route show default 2>/dev/null | awk '/default/ {print $5}' | head -n 1)
+    fi
+    
+    # 方法3: 兜底 eth0
+    if [ -z "$iface" ]; then
+        iface="eth0"
+    fi
+    
+    echo "$iface"
+}
+
+# 获取并导出物理网卡名称，供 patch_config.sh 使用
+export PHYSICAL_IFACE=$(detect_interface)
+if [ -n "$PHYSICAL_IFACE" ]; then
+    # 将探测到的网卡写入 .env 以便持久化和供其他脚本使用 (如果是首次或发生变化)
+    if ! grep -q "^PHYSICAL_IFACE=" "$ENV_FILE" 2>/dev/null; then
+        echo "PHYSICAL_IFACE=\"$PHYSICAL_IFACE\"" >> "$ENV_FILE"
+    else
+        # 更新 .env 中的值 (如果不同)
+        sed -i "s|^PHYSICAL_IFACE=.*|PHYSICAL_IFACE=\"$PHYSICAL_IFACE\"|" "$ENV_FILE"
+    fi
 fi
+IFACE="$PHYSICAL_IFACE" # 兼容旧变量名
+
+log "🌐 检测到物理出口网卡: ${GREEN}${IFACE}${NC}"
 
 # ==========================================
 # 核心功能：规则检测与应用
