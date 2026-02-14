@@ -66,31 +66,21 @@ try:
     if 'dns' not in config or not isinstance(config['dns'], dict):
         config['dns'] = {}
     
+    # 强制开启 DNS 模块，否则无法处理解析请求
+    config['dns']['enable'] = True
+    
     if dns_hijack_enabled:
         config['dns']['listen'] = '0.0.0.0:53'
     else:
+        # 如果关闭劫持，则监听 1053 端口，供 MosDNS 转发
         config['dns']['listen'] = '0.0.0.0:1053'
 
-    # 3. 防回环与 DNS 保护规则
+    # 3. 防回环规则 (基础补丁)
     if 'rules' not in config or config['rules'] is None:
         config['rules'] = []
 
-    # 注入常用 DNS 的 DIRECT 规则，防止 DNS 解析回环
-    dns_direct_rules = [
-        'IP-CIDR,223.5.5.5/32,DIRECT,no-resolve',
-        'IP-CIDR,114.114.114.114/32,DIRECT,no-resolve',
-        'IP-CIDR,8.8.8.8/32,DIRECT,no-resolve'
-    ]
-    
-    # 移除已有的同类 DNS 规则并重新插入到最前面
-    config['rules'] = [r for r in config['rules'] if not (isinstance(r, str) and any(dns in r for dns in ['223.5.5.5', '114.114.114.114', '8.8.8.8']))]
-    for rule in reversed(dns_direct_rules):
-        config['rules'].insert(0, rule)
-
     if local_cidr:
         loop_rule = f'IP-CIDR,{local_cidr},DIRECT,no-resolve'
-        if 'rules' not in config or config['rules'] is None:
-            config['rules'] = []
         # 移除旧的同类规则
         config['rules'] = [r for r in config['rules'] if not (isinstance(r, str) and 'IP-CIDR' in r and 'DIRECT' in r and 'no-resolve' in r)]
         # 插入到第一位
