@@ -37,6 +37,23 @@ fi
 apply_rules() {
     local changed=0
 
+    # 0. 确保 TUN 设备就绪
+    # --------------------------------------
+    if [ ! -c "/dev/net/tun" ]; then
+        log "⚠️  TUN 设备缺失，正在尝试修复..."
+        mkdir -p /dev/net
+        if [ ! -c "/dev/net/tun" ]; then
+            mknod /dev/net/tun c 10 200 2>/dev/null
+        fi
+        modprobe tun 2>/dev/null
+        if [ ! -c "/dev/net/tun" ]; then
+            log "❌ 无法创建 TUN 设备，TUN 模式可能不可用。"
+        else
+            log "✅ TUN 设备已就绪。"
+            changed=1
+        fi
+    fi
+
     # A. 开启内核转发
     # --------------------------------------
     # 读取当前状态
