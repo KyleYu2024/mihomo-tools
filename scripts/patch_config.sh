@@ -46,28 +46,27 @@ try:
     if 'tun' not in config or not isinstance(config['tun'], dict):
         config['tun'] = {}
     config['tun']['enable'] = tun_enabled
+    config['tun']['mtu'] = 1500 # 降低 MTU 提高兼容性
+    config['tun']['device'] = 'mihomo-tun'
     
-    # 【关键修复】显式指定物理网卡，避免 auto-detect 报错
-    if physical_iface:
-        config['tun']['device'] = 'mihomo-tun' # 固定 TUN 设备名
-        config['tun']['auto-detect-interface'] = False # 关闭自动检测
-        config['interface-name'] = physical_iface # 绑定物理出口
-        print(f'✅ 已绑定物理网卡: {physical_iface}')
-    else:
-        # 如果没探测到，保持原样或默认开启自动
-        config['tun']['auto-detect-interface'] = True
+    # 恢复自动探测，因为我们已经有了内核级的避让规则 (ip rule prio 100)
+    config['tun']['auto-detect-interface'] = True
+    if 'interface-name' in config:
+        del config['interface-name']
 
     if dns_hijack_enabled:
         config['tun']['dns-hijack'] = ['any:53', 'tcp://any:53']
     else:
         config['tun']['dns-hijack'] = []
 
-    # 2. DNS 设置 (监听端口)
+    # 2. DNS 设置
     if 'dns' not in config or not isinstance(config['dns'], dict):
         config['dns'] = {}
     
-    # 强制开启 DNS 模块，否则无法处理解析请求
     config['dns']['enable'] = True
+    # 强制修正 Fake-IP 范围，确保与主路由静态路由匹配
+    config['dns']['enhanced-mode'] = 'fake-ip'
+    config['dns']['fake-ip-range'] = '198.18.0.1/16'
     
     if dns_hijack_enabled:
         config['dns']['listen'] = '0.0.0.0:53'
