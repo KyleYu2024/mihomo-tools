@@ -5,8 +5,9 @@
 # ==========================================
 
 # 1. 环境加载
-if [ -f "/etc/mihomo/.env" ]; then source /etc/mihomo/.env; fi
-# 兜底路径 (防止 .env 不存在或变量缺失)
+ENV_FILE="/etc/mihomo/.env"
+if [ -f "$ENV_FILE" ]; then source "$ENV_FILE"; fi
+# 兜底路径
 SCRIPT_PATH="${SCRIPT_PATH:-/etc/mihomo/scripts}"
 CURRENT_SCRIPT="${SCRIPT_PATH}/gateway_init.sh"
 
