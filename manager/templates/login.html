@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mihomo 登录</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff">
+    
+    <style>
+        /* 零依赖 CSS，保证无网也能渲染 */
+        :root {
+            --bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --text: #333;
+            --border: #ddd;
+            --input-bg: #fff;
+            --btn-bg: #0d6efd;
+            --btn-text: #fff;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #121212;
+                --card-bg: #1e1e1e;
+                --text: #eee;
+                --border: #333;
+                --input-bg: #2b2b2b;
+                --btn-bg: #0d6efd;
+                --btn-text: #fff;
+            }
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .login-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .logo { width: 64px; height: 64px; margin-bottom: 1rem; border-radius: 12px; }
+        h2 { margin: 0 0 1.5rem; font-size: 1.5rem; font-weight: 700; }
+        .form-group { margin-bottom: 1rem; text-align: left; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.85rem; opacity: 0.7; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 1rem;
+            box-sizing: border-box; /* 关键 */
+            outline: none;
+        }
+        input:focus { border-color: var(--btn-bg); }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        button:active { opacity: 0.8; }
+        .error { color: #dc3545; font-size: 0.85rem; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <img src="/static/logo.png" alt="Logo" class="logo">
+        <h2>Mihomo Manager</h2>
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" name="username" placeholder="默认 admin" required>
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" name="password" placeholder="默认 admin" required>
+            </div>
+            <button type="submit">登 录</button>
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+        </form>
+    </div>
+</body>
+</html>
