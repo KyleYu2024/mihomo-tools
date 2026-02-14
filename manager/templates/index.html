@@ -437,18 +437,27 @@
             const lines = rawLogs.split('\n').filter(line => line.trim() !== '').reverse();
             let html = '';
             lines.forEach(line => {
-                const match = line.match(/time="([^"]+)" level=([^ ]+) msg="([^"]+)"/);
-                if (match) {
-                    let time = match[1].replace('T', ' ').split('.')[0];
-                    let level = match[2].toUpperCase();
-                    let msg = match[3];
+                // 1. 尝试匹配 Mihomo 标准日志格式
+                const mihomoMatch = line.match(/time="([^"]+)" level=([^ ]+) msg="([^"]+)"/);
+                // 2. 尝试匹配 Systemd 标准日志格式 (如: Feb 14 07:00:02 test bash[2238]: ...)
+                const systemdMatch = line.match(/^(\w{3} +\d+ \d+:\d+:\d+) (\S+) (.*?): (.*)$/);
+
+                if (mihomoMatch) {
+                    let time = mihomoMatch[1].replace('T', ' ').split('.')[0];
+                    let level = mihomoMatch[2].toUpperCase();
+                    let msg = mihomoMatch[3];
                     let badgeClass = 'tag-info';
                     if(level === 'WARNING' || level === 'WARN') badgeClass = 'tag-warn';
                     if(level === 'ERROR' || level === 'FATAL') badgeClass = 'tag-error';
                     if(level === 'DEBUG') badgeClass = 'tag-debug';
                     html += `<div class="log-entry"><span class="log-tag ${badgeClass}">${level}</span><span class="log-time">${time}</span><span class="log-msg">${msg}</span></div>`;
+                } else if (systemdMatch) {
+                    let time = systemdMatch[1];
+                    let proc = systemdMatch[3];
+                    let msg = systemdMatch[4];
+                    html += `<div class="log-entry"><span class="log-tag tag-debug">SYSTEM</span><span class="log-time">${time}</span><span class="log-msg"><b class="text-info">${proc}:</b> ${msg}</span></div>`;
                 } else {
-                    html += `<div class="log-entry"><span class="log-msg text-muted">${line}</span></div>`;
+                    html += `<div class="log-entry"><span class="log-msg" style="color: var(--text-main); opacity: 0.8;">${line}</span></div>`;
                 }
             });
             if (logContainer.innerHTML !== html) {
