@@ -66,7 +66,21 @@ log "🌐 检测到物理出口网卡: ${GREEN}${IFACE}${NC}"
 apply_rules() {
     local changed=0
 
-    # 0. 确保 TUN 设备就绪
+    # 0. 日志自动清理 (防止撑爆硬盘)
+    # --------------------------------------
+    local log_file="/var/log/mihomo.log"
+    if [ -f "$log_file" ]; then
+        local log_size=$(du -m "$log_file" | cut -f1)
+        if [ "$log_size" -gt 10 ]; then
+            log "🧹 日志文件过大 (${log_size}MB)，正在清理..."
+            # 仅保留最后 5000 行
+            local temp_log=$(tail -n 5000 "$log_file")
+            echo "$temp_log" > "$log_file"
+            log "✅ 日志已缩减。"
+        fi
+    fi
+
+    # 0.1 确保 TUN 设备就绪
     # --------------------------------------
     if [ ! -c "/dev/net/tun" ]; then
         log "⚠️  TUN 设备缺失，正在尝试修复..."

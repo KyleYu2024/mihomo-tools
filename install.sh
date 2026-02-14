@@ -118,12 +118,19 @@ EOF
 cat > /etc/systemd/system/mihomo.service <<EOF
 [Unit]
 Description=Mihomo Core
-After=network.target
+After=network.target network-online.target nss-lookup.target
 [Service]
 Type=simple
 User=root
-ExecStart=/bin/bash -c "/usr/bin/mihomo-core -d /etc/mihomo > /var/log/mihomo.log 2>&1"
+WorkingDirectory=${MIHOMO_DIR}
+ExecStartPre=/bin/bash ${SCRIPT_DIR}/gateway_init.sh
+ExecStart=/usr/bin/mihomo-core -d ${MIHOMO_DIR}
 Restart=always
+RestartSec=5s
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=1000
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -142,7 +149,16 @@ WantedBy=multi-user.target
 EOF
 
 # === 系统初始化 ===
-echo "🔧 6. 系统网络优化..."
+echo "🔧 6. 系统与日志优化..."
+# 限制 Systemd 日志总量，防止运行数年撑爆硬盘
+mkdir -p /etc/systemd/journald.conf.d/
+cat > /etc/systemd/journald.conf.d/mihomo-limit.conf <<EOF
+[Journal]
+SystemMaxUse=128M
+RuntimeMaxUse=64M
+EOF
+systemctl restart systemd-journald
+
 systemctl daemon-reload
 systemctl enable mihomo-manager mihomo force-ip-forward
 

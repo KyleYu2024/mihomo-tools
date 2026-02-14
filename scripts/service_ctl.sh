@@ -29,6 +29,9 @@ ExecStart=${MIHOMO_PATH}/mihomo -d ${MIHOMO_PATH}
 # 稳定性核心：崩溃后 5 秒自动重启
 Restart=always
 RestartSec=5s
+# 日志管理：限制日志产生速度，防止异常情况下撑爆硬盘
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=1000
 # 赋予网络管理权限
 AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
 CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
