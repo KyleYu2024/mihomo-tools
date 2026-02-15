@@ -67,8 +67,8 @@ try:
         # 劫持模式：监听所有接口的 53 端口
         config['dns']['listen'] = '0.0.0.0:53'
     else:
-        # 关闭劫持：监听本地回环的 53 端口，避免占用局域网 53 端口
-        config['dns']['listen'] = '127.0.0.1:53'
+        # 关闭劫持：监听 1053 端口，让出 53 端口给 MosDNS 等前端服务
+        config['dns']['listen'] = '0.0.0.0:1053'
 
     # 3. 防回环规则 (基础补丁)
     if 'rules' not in config or config['rules'] is None:
