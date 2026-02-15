@@ -261,9 +261,8 @@
             </div>
 
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-sliders"></i> 全局高级设置</span>
-                    <button class="btn btn-primary btn-sm" onclick="saveSettings(false, 'advanced')">仅保存设置</button>
+                <div class="card-header">
+                    <i class="bi bi-sliders"></i> 全局高级设置
                 </div>
                 <div class="card-body">
                     <label class="form-label fw-bold text-success">本地直连网段 (防回环)</label>
@@ -272,7 +271,7 @@
                         <input type="text" class="form-control" id="local_cidr" placeholder="例如: 10.10.1.0/24 (留空则不启用)">
                     </div>
 
-                    <div class="row g-2 mb-2">
+                    <div class="row g-2 mb-3">
                         <div class="col-6">
                             <div class="border rounded p-2">
                                 <div class="form-check form-switch">
@@ -292,16 +291,21 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="text-end border-top pt-3">
+                        <button class="btn btn-primary" onclick="saveSettings(false, 'advanced')">
+                            <i class="bi bi-check-circle"></i> 保存并应用
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-clock-history"></i> 自动化任务</span>
-                    <button class="btn btn-primary btn-sm" onclick="saveSettings(false, 'cron')">保存任务</button>
+                <div class="card-header">
+                    <i class="bi bi-clock-history"></i> 自动化任务
                 </div>
                 <div class="card-body">
-                    <div class="row g-4">
+                    <div class="row g-4 mb-3">
                         <div class="col-md-6 border-end border-secondary">
                             <h6 class="fw-bold text-success">自动更新订阅</h6>
                             <div class="form-check form-switch my-2">
@@ -318,6 +322,12 @@
                             </div>
                             <input type="text" class="form-control font-monospace mt-1" id="cron_geo_sched" value="0 4 * * *">
                         </div>
+                    </div>
+                    
+                    <div class="text-end border-top pt-3">
+                        <button class="btn btn-primary" onclick="saveSettings(false, 'cron')">
+                            <i class="bi bi-save"></i> 保存定时任务
+                        </button>
                     </div>
                 </div>
             </div>
