@@ -241,40 +241,36 @@
         <div class="tab-pane fade" id="tab-tasks">
             <div class="card border-primary border-1" style="border-left-width: 4px;">
                 <div class="card-header text-primary">
-                    <i class="bi bi-link-45deg"></i> 订阅配置
+                    <i class="bi bi-link-45deg"></i> 订阅配置 (获取完整配置文件)
                 </div>
                 <div class="card-body">
-                    
-                    <label class="form-label fw-bold">选择配置模式</label>
-                    <div class="d-flex gap-3 mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="configMode" id="mode_raw" value="raw" onchange="toggleModeDesc()">
-                            <label class="form-check-label" for="mode_raw">
-                                🔌 配置托管 (Config Hosted)
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="configMode" id="mode_airport" value="airport" onchange="toggleModeDesc()">
-                            <label class="form-check-label" for="mode_airport">
-                                🏗️ 节点订阅 (Subscription)
-                            </label>
-                        </div>
-                    </div>
-
-                    <label class="form-label fw-bold" id="sub_url_label">订阅链接 URL</label>
+                    <label class="form-label fw-bold">配置订阅链接 (URL)</label>
                     <div class="input-group mb-2">
                         <span class="input-group-text"><i class="bi bi-globe"></i></span>
-                        <textarea class="form-control" id="sub_url" rows="3" placeholder="http://..."></textarea>
+                        <input type="text" class="form-control" id="sub_url" placeholder="http://... (支持 Sub-Store / Gist 等完整配置文件链接)">
                     </div>
-                    <div class="form-text mb-3" id="sub_url_hint">请填入 Sub-Store 或完整配置文件的链接。</div>
+                    <div class="form-text mb-3">系统将完整下载此链接指向的内容并应用。若您选择手动编辑配置，请将此项留空。</div>
                     
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted">留空表示仅使用下方手动编辑的配置</small>
+                        <button class="btn btn-primary" onclick="saveAndDownloadSub()">
+                            <i class="bi bi-cloud-download"></i> 保存并立即下载
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-sliders"></i> 全局高级设置
+                </div>
+                <div class="card-body">
                     <label class="form-label fw-bold text-success">本地直连网段 (防回环)</label>
                     <div class="input-group mb-3">
                         <span class="input-group-text"><i class="bi bi-diagram-2"></i></span>
                         <input type="text" class="form-control" id="local_cidr" placeholder="例如: 10.10.1.0/24 (留空则不启用)">
                     </div>
 
-                    <label class="form-label fw-bold text-primary">全局高级开关</label>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <div class="border rounded p-2">
@@ -294,13 +290,6 @@
                                 <div class="small text-muted">接管 53 端口</div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <small class="text-muted">保存后需点击应用</small>
-                        <button class="btn btn-primary" onclick="saveAndUpdateSub()">
-                            <i class="bi bi-cloud-download"></i> 保存并应用配置
-                        </button>
                     </div>
                 </div>
             </div>
@@ -331,7 +320,7 @@
                     <hr class="border-secondary">
                     <div class="text-end">
                         <button class="btn btn-primary" onclick="saveSettings(false)">
-                            <i class="bi bi-save"></i> 仅保存设置
+                            <i class="bi bi-save"></i> 保存高级设置与任务
                         </button>
                     </div>
                 </div>
@@ -339,8 +328,8 @@
 
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-file-earmark-code"></i> 配置文件 (config.yaml)</span>
-                    <button class="btn btn-outline-primary btn-sm" onclick="saveConfig()">保存重启</button>
+                    <span><i class="bi bi-file-earmark-code"></i> 配置文件手动编辑 (config.yaml)</span>
+                    <button class="btn btn-outline-primary btn-sm" onclick="saveConfig()">保存并应用</button>
                 </div>
                 <div class="card-body p-0">
                     <textarea id="config-editor" class="form-control" style="height: 500px; padding: 15px;"></textarea>
@@ -496,105 +485,34 @@
         }
     }
 
-    // === 双变量独立存储逻辑 ===
-    let cachedUrlRaw = "";
-    let cachedUrlAirport = "";
-
-    function toggleModeDesc() {
-        const isAirport = document.getElementById('mode_airport').checked;
-        const label = document.getElementById('sub_url_label');
-        const hint = document.getElementById('sub_url_hint');
-        const input = document.getElementById('sub_url');
+    // === 订阅下载逻辑 ===
+    async function saveAndDownloadSub() {
+        const url = document.getElementById('sub_url').value;
+        if(!url && !confirm("订阅链接为空，将不会下载任何文件。是否继续保存？")) return;
         
-        if (isAirport) {
-            label.innerHTML = "机场订阅链接 (每行一个)";
-            input.placeholder = "https://airport1.com/...\nhttps://airport2.com/...";
-            hint.innerHTML = "支持多个机场，请每行填一个链接。系统将自动合并节点。";
-            input.value = cachedUrlAirport; 
-        } else {
-            label.innerHTML = "完整配置文件 URL";
-            input.placeholder = "http://... (Sub-Store/Gist)";
-            hint.innerHTML = "系统将完整下载并应用该配置文件 (仅注入防回环规则)。";
-            input.value = cachedUrlRaw; 
-        }
-    }
-    
-    document.getElementById('sub_url').addEventListener('input', function(e) {
-        if (document.getElementById('mode_airport').checked) {
-            cachedUrlAirport = e.target.value;
-        } else {
-            cachedUrlRaw = e.target.value;
-        }
-    });
-
-    async function api(path, data) {
-        const opts = data ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) } : {};
-        const resp = await fetch('/api'+path, opts);
+        // 1. 先保存设置 (仅保存到 .env)
+        await saveSettings(true);
         
-        if (resp.status === 401) {
-            window.location.href = '/login';
-            return;
-        }
-        
-        return resp.json();
-    }
-
-    function control(act) {
-        if(act === 'test_notify' && !confirm("确定发送测试消息吗？建议先保存配置。")) return;
-        api('/control', {action: act}).then(res => {
-            alert(res.message || (res.success ? '操作成功' : '操作失败'));
-            if(act === 'fix_logs') loadLogs();
-        });
-    }
-
-    function loadConfig() {
-        api('/config').then(res => document.getElementById('config-editor').value = res.content || '');
-        loadSettings(); 
-    }
-
-    function saveConfig() {
-        if(!confirm('确定保存并重启服务？')) return;
-        const content = document.getElementById('config-editor').value;
-        api('/config', {content: content}).then(res => {
-            alert(res.message);
-            if(res.success) control('restart');
-        });
-    }
-
-    function saveAndUpdateSub() {
-        if(!document.getElementById('sub_url').value) return alert("请先填写订阅链接！");
-        if(!confirm("确定要保存并应用配置吗？此操作将覆盖当前配置。")) return;
-        saveSettings(true).then(() => {
-            alert("正在处理订阅与配置...完成后编辑器会自动刷新。");
+        if (url) {
+            alert("正在尝试下载并应用配置文件...完成后编辑器会自动刷新。");
             api('/control', {action: 'update_sub'}).then(res => {
                 alert(res.message);
                 if(res.success) loadConfig();
             });
-        });
+        } else {
+            alert("设置已保存 (未配置订阅链接，跳过下载)。");
+        }
     }
 
     function loadSettings() {
         api('/settings').then(res => {
             const isTrue = (val) => val === true || val === 'true';
             
-            // 仅加载 API 配置
             document.getElementById('notify_api').checked = isTrue(res.notify_api);
             document.getElementById('api_url').value = res.api_url;
             
-            cachedUrlRaw = (res.sub_url_raw || '').replace(/\|/g, '\n');
-            cachedUrlAirport = (res.sub_url_airport || '').replace(/\|/g, '\n');
+            document.getElementById('sub_url').value = res.sub_url || '';
             
-            const mode = res.config_mode || 'airport';
-            if (mode === 'airport') {
-                document.getElementById('mode_airport').checked = true;
-                document.getElementById('sub_url').value = cachedUrlAirport;
-            } else {
-                document.getElementById('mode_raw').checked = true;
-                document.getElementById('sub_url').value = cachedUrlRaw;
-            }
-            
-            toggleModeDesc(); 
-
             if(document.getElementById('tun_enabled')) document.getElementById('tun_enabled').checked = isTrue(res.tun_enabled);
             if(document.getElementById('dns_hijack')) document.getElementById('dns_hijack').checked = isTrue(res.dns_hijack);
 
@@ -607,26 +525,14 @@
     }
 
     async function saveSettings(silent = false) {
-        let currentMode = 'raw';
-        if (document.getElementById('mode_airport').checked) currentMode = 'airport';
-        
-        if (currentMode === 'airport') {
-            cachedUrlAirport = document.getElementById('sub_url').value;
-        } else {
-            cachedUrlRaw = document.getElementById('sub_url').value;
-        }
-
         const res = await api('/settings', {
-            // 仅发送 API 配置
             notify_api: String(document.getElementById('notify_api').checked),
             api_url: document.getElementById('api_url').value,
             
             tun_enabled: document.getElementById('tun_enabled') ? String(document.getElementById('tun_enabled').checked) : 'true',
             dns_hijack: document.getElementById('dns_hijack') ? String(document.getElementById('dns_hijack').checked) : 'true',
 
-            config_mode: currentMode,
-            sub_url_raw: cachedUrlRaw.replace(/\n/g, '|'),
-            sub_url_airport: cachedUrlAirport.replace(/\n/g, '|'),
+            sub_url: document.getElementById('sub_url').value,
             
             local_cidr: document.getElementById('local_cidr') ? document.getElementById('local_cidr').value : '',
             cron_sub_enabled: document.getElementById('cron_sub_enabled') ? String(document.getElementById('cron_sub_enabled').checked) : 'false',

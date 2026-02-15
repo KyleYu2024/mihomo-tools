@@ -146,15 +146,11 @@ def get_logs():
 def handle_settings():
     if request.method == 'GET':
         e = read_env()
-        sub_url_airport = e.get('SUB_URL_AIRPORT', '').replace('\\n', '\n')
-        
         return jsonify({
             "web_user": e.get('WEB_USER'),
             "web_port": e.get('WEB_PORT', '7838'),
             
-            "config_mode": e.get('CONFIG_MODE', 'airport'),
-            "sub_url_raw": e.get('SUB_URL_RAW', ''),
-            "sub_url_airport": sub_url_airport,
+            "sub_url": e.get('SUB_URL', ''),
             
             # 仅 Webhook
             "notify_api": e.get('NOTIFY_API') == 'true',
@@ -175,21 +171,12 @@ def handle_settings():
 
     if request.method == 'POST':
         d = request.json
-        mode = d.get('config_mode', 'airport')
-        
-        raw_airport = d.get('sub_url_airport', '')
-        if isinstance(raw_airport, list):
-            raw_airport = "\n".join(raw_airport)
-        escaped_airport = raw_airport.replace('\n', '\\n')
-
         api_url = d.get('api_url') or d.get('notify_api_url') or ''
         cron_sub = d.get('cron_sub_sched') or d.get('cron_sub_schedule') or '0 5 * * *'
         cron_geo = d.get('cron_geo_sched') or d.get('cron_geo_schedule') or '0 4 * * *'
 
         updates = {
-            "CONFIG_MODE": mode,
-            "SUB_URL_RAW": d.get('sub_url_raw', ''),
-            "SUB_URL_AIRPORT": escaped_airport,
+            "SUB_URL": d.get('sub_url', ''),
             
             # 仅更新 API 配置
             "NOTIFY_API": str(is_true(d.get('notify_api'))).lower(),

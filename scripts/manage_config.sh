@@ -59,18 +59,12 @@ update_from_url() {
         url=$input_url
         read -p "是否保存此链接？(y/n): " save_choice
         if [ "$save_choice" == "y" ]; then save_url_to_env "$url"; fi
+        # 重新加载环境以获取最新 SUB_URL
+        source "$ENV_FILE"
     fi
     
-    echo "正在下载: $url"
-    curl -L -o "$TEMP_FILE" "$url"
-    if [ $? -ne 0 ]; then
-        echo "❌ 下载失败。"
-        # --- 埋点：下载失败通知 ---
-        bash ${SCRIPT_PATH}/notify.sh "Mihomo 警告" "订阅文件下载失败，请检查网络或链接。"
-        exit 1
-    fi
-    apply_config "$TEMP_FILE"
-    rm -f "$TEMP_FILE"
+    echo "正在触发订阅更新脚本..."
+    bash "${SCRIPT_PATH}/update_subscription.sh"
 }
 
 edit_local() {
