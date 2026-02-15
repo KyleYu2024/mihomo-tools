@@ -181,10 +181,15 @@ systemctl daemon-reload > /dev/null 2>&1
 systemctl enable mihomo-manager mihomo > /dev/null 2>&1
 
 # --- 步骤 8: 网络初始化与启动 ---
-show_progress 8 $TOTAL_STEPS "正在执行网关网络初始化并启动服务..."
+show_progress 8 $TOTAL_STEPS "正在执行网关网络初始化并下载 Geo 数据..."
 if [ -f "${SCRIPT_DIR}/gateway_init.sh" ]; then
-    bash "${SCRIPT_DIR}/gateway_init.sh" > /dev/null 2>&1 &
-    spinner $!
+    bash "${SCRIPT_DIR}/gateway_init.sh" > /dev/null 2>&1
+fi
+
+# 显式下载 Geo 数据库，方便用户看到进度
+if [ -f "${SCRIPT_DIR}/update_geo.sh" ]; then
+    echo -e "\n🌍 正在初始化 Geo 数据库 (geoip/geosite)..."
+    bash "${SCRIPT_DIR}/update_geo.sh"
 fi
 
 systemctl restart mihomo-manager mihomo > /dev/null 2>&1

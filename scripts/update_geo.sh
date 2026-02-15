@@ -13,7 +13,8 @@ GEOIP_URL="https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/
 GEOSITE_URL="https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
 
 # GeoIP
-wget --no-check-certificate -O "${GEO_DIR}/geoip.dat.new" "$GEOIP_URL" >/dev/null 2>&1
+echo "正在下载 GeoIP 数据库..."
+wget --no-check-certificate --show-progress -O "${GEO_DIR}/geoip.dat.new" "$GEOIP_URL"
 if [ $? -eq 0 ] && [ -s "${GEO_DIR}/geoip.dat.new" ]; then
     mv "${GEO_DIR}/geoip.dat.new" "${GEO_DIR}/geoip.dat"
     echo "✅ GeoIP 更新成功"
@@ -23,7 +24,8 @@ else
 fi
 
 # GeoSite
-wget --no-check-certificate -O "${GEO_DIR}/geosite.dat.new" "$GEOSITE_URL" >/dev/null 2>&1
+echo "正在下载 GeoSite 数据库..."
+wget --no-check-certificate --show-progress -O "${GEO_DIR}/geosite.dat.new" "$GEOSITE_URL"
 if [ $? -eq 0 ] && [ -s "${GEO_DIR}/geosite.dat.new" ]; then
     mv "${GEO_DIR}/geosite.dat.new" "${GEO_DIR}/geosite.dat"
     echo "✅ GeoSite 更新成功"
