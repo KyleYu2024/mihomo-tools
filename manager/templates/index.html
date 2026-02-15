@@ -424,15 +424,18 @@
             const lines = rawLogs.split('\n').filter(line => line.trim() !== '').reverse();
             let html = '';
             lines.forEach(line => {
-                const match = line.match(/time="([^"]+)" level=([^ ]+) msg="([^"]+)"/);
+                // 增强正则：兼容 systemd 格式和 mihomo 原始格式
+                const match = line.match(/level=([^ ]+) msg="?([^"]+)"?/);
                 if (match) {
-                    let time = match[1].replace('T', ' ').split('.')[0];
-                    let level = match[2].toUpperCase();
-                    let msg = match[3];
+                    let level = match[1].toUpperCase();
+                    let msg = match[2];
+                    let timeMatch = line.match(/(\d{2}:\d{2}:\d{2})/);
+                    let time = timeMatch ? timeMatch[1] : "";
+                    
                     let badgeClass = 'tag-info';
-                    if(level === 'WARNING' || level === 'WARN') badgeClass = 'tag-warn';
-                    if(level === 'ERROR' || level === 'FATAL') badgeClass = 'tag-error';
-                    if(level === 'DEBUG') badgeClass = 'tag-debug';
+                    if(level.includes('WARN')) badgeClass = 'tag-warn';
+                    if(level.includes('ERR') || level.includes('FATAL')) badgeClass = 'tag-error';
+                    if(level.includes('DEBUG')) badgeClass = 'tag-debug';
                     html += `<div class="log-entry"><span class="log-tag ${badgeClass}">${level}</span><span class="log-time">${time}</span><span class="log-msg">${msg}</span></div>`;
                 } else {
                     html += `<div class="log-entry"><span class="log-msg text-muted">${line}</span></div>`;
@@ -582,7 +585,11 @@
         if(!silent) {
             let msg = "配置已保存";
             if(type === 'sub') msg = "订阅链接已保存";
-            if(type === 'advanced') msg = "全局高级设置已保存并应用";
+            if(type === 'advanced') {
+                msg = "全局高级设置已保存并应用";
+                // 高级设置涉及 config.yaml 的 patch，保存后立即刷新下方编辑器内容
+                loadConfig();
+            }
             if(type === 'cron') msg = "自动化任务已更新";
             if(type === 'notify') msg = "通知配置已保存";
             alert(res.message || msg);

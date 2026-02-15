@@ -137,8 +137,8 @@ def handle_config():
 @app.route('/api/logs')
 @login_required
 def get_logs():
-    if not os.path.exists(LOG_FILE): return jsonify({"logs": "日志未生成"})
-    s, l = run_cmd(f"tail -n 100 {LOG_FILE}")
+    # 从 systemd journal 读取最新 100 行日志
+    s, l = run_cmd("journalctl -u mihomo -n 100 --no-pager")
     return jsonify({"logs": l if l else "暂无日志"})
 
 @app.route('/api/settings', methods=['GET', 'POST'])
