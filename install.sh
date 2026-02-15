@@ -73,8 +73,8 @@ LATEST_VER=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/late
 LATEST_VER=${LATEST_VER:-v1.18.1}
 ARCH=$(uname -m)
 case $ARCH in
-    x86_64) URL="https://github.com/MetaCubeX/mihomo/releases/download/${LATEST_VER}/mihomo-linux-amd64-${LATEST_VER}.gz" ;;
-    aarch64) URL="https://github.com/MetaCubeX/mihomo/releases/download/${LATEST_VER}/mihomo-linux-arm64-${LATEST_VER}.gz" ;;
+    x86_64) URL="https://gh-proxy.com/https://github.com/MetaCubeX/mihomo/releases/download/${LATEST_VER}/mihomo-linux-amd64-${LATEST_VER}.gz" ;;
+    aarch64) URL="https://gh-proxy.com/https://github.com/MetaCubeX/mihomo/releases/download/${LATEST_VER}/mihomo-linux-arm64-${LATEST_VER}.gz" ;;
     *) echo "❌ 不支持的架构"; exit 1 ;;
 esac
 wget -q -O /tmp/mihomo.gz "$URL" &
@@ -84,7 +84,7 @@ gzip -d -f /tmp/mihomo.gz && mv /tmp/mihomo /usr/bin/mihomo-core && chmod +x /us
 # --- 步骤 5: 下载面板 ---
 show_progress 5 $TOTAL_STEPS "正在下载 Zashboard 面板 UI..."
 rm -rf "${UI_DIR}/*"
-wget -q -O /tmp/ui.zip "https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip" &
+wget -q -O /tmp/ui.zip "https://gh-proxy.com/https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip" &
 spinner $!
 unzip -q -o /tmp/ui.zip -d /tmp/ && cp -r /tmp/zashboard-gh-pages/* "${UI_DIR}/" && rm -rf /tmp/ui*
 

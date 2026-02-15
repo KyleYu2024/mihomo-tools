@@ -9,8 +9,8 @@ if [ -f "$ENV_FILE" ]; then source "$ENV_FILE"; fi
 
 echo "⬇️  开始更新 Geo 数据库..."
 
-GEOIP_URL="https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
-GEOSITE_URL="https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+GEOIP_URL="https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+GEOSITE_URL="https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
 
 # GeoIP
 echo "正在下载 GeoIP 数据库..."
