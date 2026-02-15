@@ -261,8 +261,9 @@
             </div>
 
             <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-sliders"></i> 全局高级设置
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-sliders"></i> 全局高级设置</span>
+                    <button class="btn btn-primary btn-sm" onclick="saveSettings(false, 'advanced')">仅保存设置</button>
                 </div>
                 <div class="card-body">
                     <label class="form-label fw-bold text-success">本地直连网段 (防回环)</label>
@@ -295,8 +296,9 @@
             </div>
 
             <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-clock-history"></i> 自动化任务
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history"></i> 自动化任务</span>
+                    <button class="btn btn-primary btn-sm" onclick="saveSettings(false, 'cron')">保存任务</button>
                 </div>
                 <div class="card-body">
                     <div class="row g-4">
@@ -316,12 +318,6 @@
                             </div>
                             <input type="text" class="form-control font-monospace mt-1" id="cron_geo_sched" value="0 4 * * *">
                         </div>
-                    </div>
-                    <hr class="border-secondary">
-                    <div class="text-end">
-                        <button class="btn btn-primary" onclick="saveSettings(false)">
-                            <i class="bi bi-save"></i> 保存高级设置与任务
-                        </button>
                     </div>
                 </div>
             </div>
@@ -358,7 +354,7 @@
                             <div class="form-text">支持发送 JSON 通知的 Webhook 地址</div>
                         </div>
                     </div>
-                    <button class="btn btn-primary mt-3" onclick="saveSettings(false)">💾 保存所有设置</button>
+                    <button class="btn btn-primary mt-3" onclick="saveSettings(false, 'notify')">💾 保存通知设置</button>
                 </div>
             </div>
         </div>
@@ -485,13 +481,46 @@
         }
     }
 
+    // === 核心 API 与 控制逻辑 ===
+    async function api(path, data) {
+        const opts = data ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) } : {};
+        const resp = await fetch('/api'+path, opts);
+        if (resp.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+        return resp.json();
+    }
+
+    function control(act) {
+        if(act === 'test_notify' && !confirm("确定发送测试消息吗？建议先保存配置。")) return;
+        api('/control', {action: act}).then(res => {
+            alert(res.message || (res.success ? '操作成功' : '操作失败'));
+            if(act === 'fix_logs') loadLogs();
+        });
+    }
+
+    function loadConfig() {
+        api('/config').then(res => document.getElementById('config-editor').value = res.content || '');
+        loadSettings(); 
+    }
+
+    function saveConfig() {
+        if(!confirm('确定保存并重启服务？')) return;
+        const content = document.getElementById('config-editor').value;
+        api('/config', {content: content}).then(res => {
+            alert(res.message);
+            if(res.success) control('restart');
+        });
+    }
+
     // === 订阅下载逻辑 ===
     async function saveAndDownloadSub() {
         const url = document.getElementById('sub_url').value;
         if(!url && !confirm("订阅链接为空，将不会下载任何文件。是否继续保存？")) return;
         
         // 1. 先保存设置 (仅保存到 .env)
-        await saveSettings(true);
+        await saveSettings(true, 'sub');
         
         if (url) {
             alert("正在尝试下载并应用配置文件...完成后编辑器会自动刷新。");
@@ -524,7 +553,7 @@
         });
     }
 
-    async function saveSettings(silent = false) {
+    async function saveSettings(silent = false, type = 'all') {
         const res = await api('/settings', {
             notify_api: String(document.getElementById('notify_api').checked),
             api_url: document.getElementById('api_url').value,
@@ -540,7 +569,14 @@
             cron_geo_enabled: document.getElementById('cron_geo_enabled') ? String(document.getElementById('cron_geo_enabled').checked) : 'false',
             cron_geo_sched: document.getElementById('cron_geo_sched') ? document.getElementById('cron_geo_sched').value : ''
         });
-        if(!silent) alert(res.message);
+        if(!silent) {
+            let msg = "配置已保存";
+            if(type === 'sub') msg = "订阅链接已保存";
+            if(type === 'advanced') msg = "全局高级设置已保存并应用";
+            if(type === 'cron') msg = "自动化任务已更新";
+            if(type === 'notify') msg = "通知配置已保存";
+            alert(res.message || msg);
+        }
         return res;
     }
 
