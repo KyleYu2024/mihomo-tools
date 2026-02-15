@@ -167,7 +167,10 @@ def handle_settings():
             "cron_sub_schedule": e.get('CRON_SUB_SCHED', '0 5 * * *'),
             "cron_geo_enabled": e.get('CRON_GEO_ENABLED') == 'true',
             "cron_geo_sched": e.get('CRON_GEO_SCHED', '0 4 * * *'),
-            "cron_geo_schedule": e.get('CRON_GEO_SCHED', '0 4 * * *')
+            "cron_geo_schedule": e.get('CRON_GEO_SCHED', '0 4 * * *'),
+            
+            "tun_enabled": e.get('TUN_ENABLED', 'true') == 'true',
+            "dns_hijack": e.get('DNS_HIJACK_ENABLED', 'true') == 'true'
         })
 
     if request.method == 'POST':
@@ -198,7 +201,10 @@ def handle_settings():
             "CRON_SUB_SCHED": cron_sub,
             
             "CRON_GEO_ENABLED": str(is_true(d.get('cron_geo_enabled'))).lower(),
-            "CRON_GEO_SCHED": cron_geo
+            "CRON_GEO_SCHED": cron_geo,
+
+            "TUN_ENABLED": str(is_true(d.get('tun_enabled'))).lower(),
+            "DNS_HIJACK_ENABLED": str(is_true(d.get('dns_hijack'))).lower()
         }
         
         lines = []
@@ -220,7 +226,10 @@ def handle_settings():
         update_cron("# JOB_SUB", updates['CRON_SUB_SCHED'], f"bash {SCRIPT_DIR}/update_subscription.sh >/dev/null 2>&1", updates['CRON_SUB_ENABLED'] == 'true')
         update_cron("# JOB_GEO", updates['CRON_GEO_SCHED'], f"bash {SCRIPT_DIR}/update_geo.sh >/dev/null 2>&1", updates['CRON_GEO_ENABLED'] == 'true')
         
-        return jsonify({"success": True, "message": "配置已成功保存！"})
+        # 应用设置到 config.yaml
+        run_cmd(f"bash {SCRIPT_DIR}/apply_settings.sh")
+
+        return jsonify({"success": True, "message": "配置已成功保存并应用！"})
 
 if __name__ == '__main__':
     env = read_env()

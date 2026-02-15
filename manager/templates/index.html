@@ -269,9 +269,31 @@
                     <div class="form-text mb-3" id="sub_url_hint">请填入 Sub-Store 或完整配置文件的链接。</div>
                     
                     <label class="form-label fw-bold text-success">本地直连网段 (防回环)</label>
-                    <div class="input-group mb-2">
+                    <div class="input-group mb-3">
                         <span class="input-group-text"><i class="bi bi-diagram-2"></i></span>
                         <input type="text" class="form-control" id="local_cidr" placeholder="例如: 10.10.1.0/24 (留空则不启用)">
+                    </div>
+
+                    <label class="form-label fw-bold text-primary">全局高级开关</label>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="tun_enabled" checked>
+                                    <label class="form-check-label fw-bold">TUN 模式</label>
+                                </div>
+                                <div class="small text-muted">开启虚拟网卡</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="dns_hijack" checked>
+                                    <label class="form-check-label fw-bold">DNS 劫持</label>
+                                </div>
+                                <div class="small text-muted">接管 53 端口</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-3">
@@ -573,6 +595,9 @@
             
             toggleModeDesc(); 
 
+            if(document.getElementById('tun_enabled')) document.getElementById('tun_enabled').checked = isTrue(res.tun_enabled);
+            if(document.getElementById('dns_hijack')) document.getElementById('dns_hijack').checked = isTrue(res.dns_hijack);
+
             if(document.getElementById('local_cidr')) document.getElementById('local_cidr').value = res.local_cidr || '';
             if(document.getElementById('cron_sub_enabled')) document.getElementById('cron_sub_enabled').checked = isTrue(res.cron_sub_enabled);
             if(document.getElementById('cron_sub_sched')) document.getElementById('cron_sub_sched').value = res.cron_sub_sched;
@@ -596,6 +621,9 @@
             notify_api: String(document.getElementById('notify_api').checked),
             api_url: document.getElementById('api_url').value,
             
+            tun_enabled: document.getElementById('tun_enabled') ? String(document.getElementById('tun_enabled').checked) : 'true',
+            dns_hijack: document.getElementById('dns_hijack') ? String(document.getElementById('dns_hijack').checked) : 'true',
+
             config_mode: currentMode,
             sub_url_raw: cachedUrlRaw.replace(/\n/g, '|'),
             sub_url_airport: cachedUrlAirport.replace(/\n/g, '|'),
