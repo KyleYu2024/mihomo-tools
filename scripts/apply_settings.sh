@@ -6,7 +6,12 @@ ENV_FILE="${MIHOMO_DIR}/.env"
 CONFIG_FILE="${MIHOMO_DIR}/config.yaml"
 TEMP_FILE="/tmp/config_apply.yaml"
 
-if [ -f "$ENV_FILE" ]; then source "$ENV_FILE"; fi
+if [ -f "$ENV_FILE" ]; then 
+    # 导出所有变量，确保 python 子进程能读取到最新值
+    set -a
+    source "$ENV_FILE"
+    set +a
+fi
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "❌ 配置文件不存在: $CONFIG_FILE"

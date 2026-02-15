@@ -46,14 +46,10 @@ try:
     if 'tun' not in config or not isinstance(config['tun'], dict):
         config['tun'] = {}
     config['tun']['enable'] = tun_enabled
-    config['tun']['mtu'] = 1500 # 降低 MTU 提高兼容性
+    config['tun']['mtu'] = 1500
     config['tun']['device'] = 'mihomo-tun'
-    
-    # 恢复自动探测，因为我们已经有了内核级的避让规则 (ip rule prio 100)
     config['tun']['auto-detect-interface'] = True
-    if 'interface-name' in config:
-        del config['interface-name']
-
+    
     if dns_hijack_enabled:
         config['tun']['dns-hijack'] = ['any:53', 'tcp://any:53']
     else:
@@ -64,15 +60,15 @@ try:
         config['dns'] = {}
     
     config['dns']['enable'] = True
-    # 强制修正 Fake-IP 范围，确保与主路由静态路由匹配
     config['dns']['enhanced-mode'] = 'fake-ip'
     config['dns']['fake-ip-range'] = '198.18.0.1/16'
     
     if dns_hijack_enabled:
+        # 劫持模式：监听所有接口的 53 端口
         config['dns']['listen'] = '0.0.0.0:53'
     else:
-        # 如果关闭劫持，则监听 1053 端口，供 MosDNS 转发
-        config['dns']['listen'] = '0.0.0.0:1053'
+        # 关闭劫持：监听本地回环的 53 端口，避免占用局域网 53 端口
+        config['dns']['listen'] = '127.0.0.1:53'
 
     # 3. 防回环规则 (基础补丁)
     if 'rules' not in config or config['rules'] is None:
