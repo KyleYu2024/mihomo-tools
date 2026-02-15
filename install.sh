@@ -118,33 +118,36 @@ EOF
 cat > /etc/systemd/system/mihomo.service <<EOF
 [Unit]
 Description=Mihomo Core
-After=network.target
+After=network.target network-online.target nss-lookup.target
 [Service]
 Type=simple
 User=root
-ExecStart=/bin/bash -c "/usr/bin/mihomo-core -d /etc/mihomo > /var/log/mihomo.log 2>&1"
+WorkingDirectory=${MIHOMO_DIR}
+ExecStartPre=/bin/bash ${SCRIPT_DIR}/gateway_init.sh
+ExecStart=/usr/bin/mihomo-core -d ${MIHOMO_DIR}
 Restart=always
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# 注册强制 IP 转发服务 (解决容器兼容性)
-cat > /etc/systemd/system/force-ip-forward.service <<EOF
-[Unit]
-Description=Force Enable IPv4 Forwarding for Mihomo
-After=network.target
-[Service]
-Type=oneshot
-ExecStart=/sbin/sysctl -w net.ipv4.ip_forward=1
-RemainAfterExit=yes
+RestartSec=5s
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=1000
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
 [Install]
 WantedBy=multi-user.target
 EOF
 
 # === 系统初始化 ===
 echo "🔧 6. 系统网络优化..."
+# 限制 Systemd 日志总量，防止运行数年撑爆硬盘
+mkdir -p /etc/systemd/journald.conf.d/
+cat > /etc/systemd/journald.conf.d/mihomo-limit.conf <<EOF
+[Journal]
+SystemMaxUse=128M
+RuntimeMaxUse=64M
+EOF
+systemctl restart systemd-journald
+
 systemctl daemon-reload
-systemctl enable mihomo-manager mihomo force-ip-forward
+systemctl enable mihomo-manager mihomo
 
 # 运行网络初始化 (此时 iptables 已安装，不会报错)
 if [ -f "${SCRIPT_DIR}/gateway_init.sh" ]; then
@@ -152,7 +155,7 @@ if [ -f "${SCRIPT_DIR}/gateway_init.sh" ]; then
     bash "${SCRIPT_DIR}/gateway_init.sh" || echo "⚠️ 警告：网络初始化遇到非致命错误，请检查日志。"
 fi
 
-systemctl restart mihomo-manager mihomo force-ip-forward
+systemctl restart mihomo-manager mihomo
 
 IP=$(hostname -I | awk '{print $1}')
 echo "========================================"

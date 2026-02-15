@@ -51,8 +51,7 @@ apply_rules() {
     # B. 基础防火墙策略 (FORWARD)
     # --------------------------------------
     # 确保 FORWARD 链策略是 ACCEPT (关键！)
-    # 注意：我们不再暴力 Flush 所有规则，以免误伤 Docker
-    # 而是检测是否允许转发
+    # 我们不再暴力 Flush 所有规则，而是检测是否允许转发
     iptables -C FORWARD -j ACCEPT 2>/dev/null
     if [ $? -ne 0 ]; then
         # 如果没有 ACCEPT 规则，或者策略不是 ACCEPT，强制插队一条

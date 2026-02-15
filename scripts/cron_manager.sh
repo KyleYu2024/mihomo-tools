@@ -54,18 +54,17 @@ case $choice in
         ;;
     3)
         # 检查是否已保存订阅链接
-        if [ -z "$SUB_URL" ]; then
+        if [ -z "$SUB_URL_RAW" ] && [ -z "$SUB_URL_AIRPORT" ]; then
             echo -e "\n⚠️  错误：系统中未找到已保存的订阅链接！"
-            echo "请先去 [菜单 3] -> [手动输入 URL] 并选择 '保存链接'。"
+            echo "请先在 Web 面板中配置订阅。"
             exit 1
         fi
         
-        echo "当前订阅链接: $SUB_URL"
+        echo "发现已保存的订阅配置。"
         read -p "请输入更新时间 (Cron格式，默认 0 5 * * * 即凌晨5点): " t_sub
         if [ -z "$t_sub" ]; then t_sub="0 5 * * *"; fi
         
-        # 这里的命令不需要带 URL 参数，因为 manage_config.sh 会自动读取 .env 里的 SUB_URL
-        add_cron "$t_sub" "${SCRIPT_PATH}/manage_config.sh update" "订阅自动更新"
+        add_cron "$t_sub" "${SCRIPT_PATH}/update_subscription.sh" "订阅自动更新"
         ;;
     4)
         remove_cron

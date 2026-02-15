@@ -27,27 +27,31 @@ echo "--------------------------------"
 # 1. 停止并禁用服务
 echo -e "${YELLOW}[1/4] 停止系统服务...${NC}"
 # 同时停止主服务和管理端服务
-systemctl stop mihomo mihomo-manager 2>/dev/null
-systemctl disable mihomo mihomo-manager 2>/dev/null
+systemctl stop mihomo mihomo-manager force-ip-forward 2>/dev/null
+systemctl disable mihomo mihomo-manager force-ip-forward 2>/dev/null
 
 # 删除服务文件
 rm -f /etc/systemd/system/mihomo.service
 rm -f /etc/systemd/system/mihomo-manager.service
+rm -f /etc/systemd/system/force-ip-forward.service
+rm -f /etc/systemd/journald.conf.d/mihomo-limit.conf
 systemctl daemon-reload
 echo "✅ 服务已移除。"
 
 # 2. 清理 Crontab 任务 (核心新增)
 echo -e "${YELLOW}[2/4] 清理自动化任务...${NC}"
 # 逻辑：列出当前任务 -> 过滤掉含 gateway_init 的(保活任务) -> 过滤掉含 MIHOMO_AUTOMATION 的(更新任务) -> 写回
-crontab -l 2>/dev/null | grep -v "gateway_init.sh" | grep -v "MIHOMO_AUTOMATION" | crontab -
+crontab -l 2>/dev/null | grep -v "gateway_init.sh" | grep -v "MIHOMO_AUTOMATION" | grep -v "# JOB_SUB" | grep -v "# JOB_GEO" | crontab -
 echo "✅ Crontab 任务已清理。"
 
 # 3. 删除文件
 echo -e "${YELLOW}[3/4] 删除程序文件...${NC}"
+rm -f /usr/bin/mihomo
+rm -f /usr/bin/mihomo-core
 rm -f /usr/bin/mihomo-cli
 # 这里会连带删除 venv 目录，因为它在 tools 里面
 rm -rf /etc/mihomo-tools
-echo "✅ 脚本、虚拟环境及 CLI 工具已删除。"
+echo "✅ 脚本及 CLI 工具已删除。"
 
 # 4. 询问是否删除数据
 echo -e "${YELLOW}[4/4] 数据清理选项${NC}"
